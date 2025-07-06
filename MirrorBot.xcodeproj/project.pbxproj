@@ -35,16 +35,6 @@
 			path = MirrorBot;
 			sourceTree = "<group>";
 		};
-		B319AF282E1A65AA00D1B514 /* MirrorBotTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MirrorBotTests;
-			sourceTree = "<group>";
-		};
-		B319AF322E1A65AA00D1B514 /* MirrorBotUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MirrorBotUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,8 +66,6 @@
 			isa = PBXGroup;
 			children = (
 				B319AF1A2E1A65A700D1B514 /* MirrorBot */,
-				B319AF282E1A65AA00D1B514 /* MirrorBotTests */,
-				B319AF322E1A65AA00D1B514 /* MirrorBotUITests */,
 				B319AF192E1A65A700D1B514 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -130,9 +118,6 @@
 			dependencies = (
 				B319AF272E1A65AA00D1B514 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				B319AF282E1A65AA00D1B514 /* MirrorBotTests */,
-			);
 			name = MirrorBotTests;
 			packageProductDependencies = (
 			);
@@ -152,9 +137,6 @@
 			);
 			dependencies = (
 				B319AF312E1A65AA00D1B514 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				B319AF322E1A65AA00D1B514 /* MirrorBotUITests */,
 			);
 			name = MirrorBotUITests;
 			packageProductDependencies = (

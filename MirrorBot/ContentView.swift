@@ -8,6 +8,89 @@
 import SwiftUI
 import ScreenCaptureKit
 import Vision
+import Foundation
+
+class APILogger {
+    static let shared = APILogger()
+    private let logFileURL: URL
+    
+    private init() {
+        let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
+        let downloadsPath = homeDirectory.appendingPathComponent("Downloads")
+        logFileURL = downloadsPath.appendingPathComponent("MirrorBot_API_Log.txt")
+        
+        // Create initial log entry
+        let header = "=== MirrorBot API Log Started at \(Date()) ===\n\n"
+        try? header.write(to: logFileURL, atomically: true, encoding: .utf8)
+    }
+    
+    func logRequest(appName: String, prompt: String) {
+        let timestamp = DateFormatter.logFormatter.string(from: Date())
+        let logEntry = """
+        [\(timestamp)] 🔍 REQUEST for app: \(appName)
+        Prompt: \(prompt)
+        
+        """
+        appendToLog(logEntry)
+        print("📝 Logged API request for \(appName)")
+    }
+    
+    func logResponse(appName: String, response: String, httpStatus: Int) {
+        let timestamp = DateFormatter.logFormatter.string(from: Date())
+        let logEntry = """
+        [\(timestamp)] 🤖 RESPONSE for app: \(appName) (HTTP \(httpStatus))
+        Response: \(response)
+        
+        """
+        appendToLog(logEntry)
+        print("📝 Logged API response for \(appName)")
+    }
+    
+    func logError(appName: String, error: String) {
+        let timestamp = DateFormatter.logFormatter.string(from: Date())
+        let logEntry = """
+        [\(timestamp)] ❌ ERROR for app: \(appName)
+        Error: \(error)
+        
+        """
+        appendToLog(logEntry)
+        print("📝 Logged API error for \(appName)")
+    }
+    
+    func logCoordinates(appName: String, coordinates: (x: Int, y: Int)?) {
+        let timestamp = DateFormatter.logFormatter.string(from: Date())
+        let coordString = coordinates != nil ? "(\(coordinates!.x), \(coordinates!.y))" : "not found"
+        let logEntry = """
+        [\(timestamp)] 📍 COORDINATES for app: \(appName)
+        Parsed: \(coordString)
+        
+        """
+        appendToLog(logEntry)
+        print("📝 Logged coordinates for \(appName): \(coordString)")
+    }
+    
+    private func appendToLog(_ content: String) {
+        if let data = content.data(using: .utf8) {
+            if FileManager.default.fileExists(atPath: logFileURL.path) {
+                if let fileHandle = try? FileHandle(forWritingTo: logFileURL) {
+                    fileHandle.seekToEndOfFile()
+                    fileHandle.write(data)
+                    fileHandle.closeFile()
+                }
+            } else {
+                try? data.write(to: logFileURL)
+            }
+        }
+    }
+}
+
+extension DateFormatter {
+    static let logFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return formatter
+    }()
+}
 
 struct ContentView: View {
     @StateObject private var screenCaptureManager = ScreenCaptureManager()
@@ -23,6 +106,10 @@ struct ContentView: View {
     @State private var showingApiKeyAlert = false
     @State private var swipeIntensity = "100"
     @State private var swipeMultiplier = "4"
+    @State private var targetAppName = "Instagram"
+    @State private var openaiApiKey = ""
+    @State private var useOpenAI = true // Use OpenAI by default
+    @State private var showingOpenAIKeyAlert = false
     
     var body: some View {
         HStack {
@@ -62,12 +149,23 @@ struct ContentView: View {
                     }
                     .disabled(isAnalyzing)
                     
-                    Button("📱 Scan Pages") {
-                        Task {
-                            await scanAllPages()
+                    VStack {
+                        HStack {
+                            Text("App:")
+                            TextField("Instagram", text: $targetAppName)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .frame(width: 100)
                         }
+                        .font(.caption)
+                        
+                        Button("📱 Scan & Find App") {
+                            Task {
+                                await scanAndFindApp()
+                            }
+                        }
+                        .disabled(isAnalyzing)
                     }
-                    .disabled(isAnalyzing)
+                    
                 }
                 .padding(.top, 10)
                 
@@ -178,6 +276,39 @@ struct ContentView: View {
                     }
                 }
                 
+                Divider()
+                    .padding(.vertical, 10)
+                
+                VStack {
+                    Text("AI Provider")
+                        .font(.headline)
+                        .padding(.bottom, 5)
+                    
+                    VStack {
+                        HStack {
+                            Button(useOpenAI ? "● OpenAI" : "○ OpenAI") {
+                                useOpenAI = true
+                            }
+                            .foregroundColor(useOpenAI ? .blue : .secondary)
+                            
+                            Button(!useOpenAI ? "● Claude" : "○ Claude") {
+                                useOpenAI = false
+                            }
+                            .foregroundColor(!useOpenAI ? .blue : .secondary)
+                        }
+                        .font(.caption)
+                        
+                        Button("⚙️ Keys") {
+                            if useOpenAI {
+                                showingOpenAIKeyAlert = true
+                            } else {
+                                showingApiKeyAlert = true
+                            }
+                        }
+                        .font(.caption)
+                    }
+                }
+                
                 Spacer()
             }
             .frame(width: 200)
@@ -239,17 +370,27 @@ struct ContentView: View {
         } message: {
             Text(alertMessage)
         }
-        .alert("API Key Required", isPresented: $showingApiKeyAlert) {
+        .alert("Anthropic API Key Required", isPresented: $showingApiKeyAlert) {
             SecureField("Enter Anthropic API Key", text: $apiKey)
             Button("Save") {
                 saveApiKey()
             }
             Button("Cancel") { }
         } message: {
-            Text("Please enter your Anthropic API key to use AI analysis.")
+            Text("Please enter your Anthropic API key to use Claude analysis.")
+        }
+        .alert("OpenAI API Key Required", isPresented: $showingOpenAIKeyAlert) {
+            SecureField("Enter OpenAI API Key", text: $openaiApiKey)
+            Button("Save") {
+                saveOpenAIApiKey()
+            }
+            Button("Cancel") { }
+        } message: {
+            Text("Please enter your OpenAI API key to use GPT-4 Vision analysis.")
         }
         .onAppear {
             loadApiKey()
+            loadOpenAIApiKey()
         }
     }
     
@@ -468,6 +609,16 @@ struct ContentView: View {
         Keychain.save(key: "anthropic_api_key", data: apiKey.data(using: .utf8) ?? Data())
     }
     
+    private func loadOpenAIApiKey() {
+        if let keyData = Keychain.load(key: "openai_api_key") {
+            openaiApiKey = String(data: keyData, encoding: .utf8) ?? ""
+        }
+    }
+    
+    private func saveOpenAIApiKey() {
+        Keychain.save(key: "openai_api_key", data: openaiApiKey.data(using: .utf8) ?? Data())
+    }
+    
     private func analyzeScreenshot() async {
         if apiKey.isEmpty {
             showingApiKeyAlert = true
@@ -526,6 +677,8 @@ struct ContentView: View {
         var lastImage: NSImage? = nil
         let maxPages = 20 // Safety limit
         
+        var results: [String] = []
+        
         while pageNumber <= maxPages {
             // Take screenshot
             guard let screenshot = await screenCaptureManager.captureIPhoneMirrorWindow() else {
@@ -535,19 +688,31 @@ struct ContentView: View {
             
             // Save screenshot
             let fileName = "iPhone_Page_\(String(format: "%02d", pageNumber)).png"
-            if await saveImageToDownloads(screenshot, fileName: fileName) {
-                apiResponse = "Saved page \(pageNumber) - \(fileName)"
+            await saveImageToDownloads(screenshot, fileName: fileName)
+            
+            // Analyze apps on this page (skip first page and App Library page)
+            if pageNumber > 1 {
+                apiResponse = "Analyzing apps on page \(pageNumber-1)..."
+                let appNames = await extractAppNames(from: screenshot)
+                if !appNames.isEmpty {
+                    results.append("Page \(pageNumber-1): \(appNames.joined(separator: ", "))")
+                } else {
+                    results.append("Page \(pageNumber-1): No apps detected")
+                }
+                
+                // Update display with current results
+                apiResponse = results.joined(separator: "\n\n")
             }
             
             // Check for "App Library" text using Vision
             if await detectAppLibrary(in: screenshot) {
-                apiResponse = "✅ Found App Library on page \(pageNumber)! Scan complete."
+                apiResponse = results.joined(separator: "\n\n") + "\n\n✅ Scan complete - Found App Library!"
                 break
             }
             
             // Check for similar images (duplicate page detection)
             if let lastImg = lastImage, await imagesAreSimilar(lastImg, screenshot) {
-                apiResponse = "📱 Reached end (similar page detected) on page \(pageNumber)"
+                apiResponse = results.joined(separator: "\n\n") + "\n\n📱 Scan complete - Reached end"
                 break
             }
             lastImage = screenshot
@@ -562,10 +727,610 @@ struct ContentView: View {
         }
         
         if pageNumber > maxPages {
-            apiResponse = "⚠️ Reached maximum pages (\(maxPages)) - scan stopped"
+            apiResponse = results.joined(separator: "\n\n") + "\n\n⚠️ Reached maximum pages (\(maxPages))"
         }
         
         isAnalyzing = false
+    }
+    
+    private func scanAndFindApp() async {
+        print("🔍 Starting scan to find app: \(targetAppName)")
+        isAnalyzing = true
+        apiResponse = "Preparing scan - going to home screen..."
+        
+        // Go to first page
+        for i in 1...10 {
+            await simulateSwipe(direction: .left)
+            apiResponse = "Going to first page... (\(i)/10)"
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
+        
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        
+        apiResponse = "Scanning pages to find \(targetAppName)..."
+        print("📱 Starting page-by-page scan")
+        
+        var pageNumber = 1
+        var lastImage: NSImage? = nil
+        let maxPages = 20
+        var results: [String] = []
+        var foundAppImage: NSImage? = nil
+        var foundOnPage = 0
+        
+        while pageNumber <= maxPages {
+            print("📸 Capturing page \(pageNumber)")
+            
+            guard let screenshot = await screenCaptureManager.captureIPhoneMirrorWindow() else {
+                print("❌ Failed to capture screenshot on page \(pageNumber)")
+                apiResponse = "Failed to capture screenshot on page \(pageNumber)"
+                break
+            }
+            
+            // Save screenshot
+            let fileName = "iPhone_Page_\(String(format: "%02d", pageNumber)).png"
+            await saveImageToDownloads(screenshot, fileName: fileName)
+            
+            // Analyze apps on this page (skip first page and App Library page)
+            if pageNumber > 1 {
+                print("🔍 Analyzing apps on page \(pageNumber-1)")
+                apiResponse = "Analyzing apps on page \(pageNumber-1)..."
+                let appNames = await extractAppNames(from: screenshot)
+                
+                if !appNames.isEmpty {
+                    results.append("Page \(pageNumber-1): \(appNames.joined(separator: ", "))")
+                    print("📋 Found apps: \(appNames.joined(separator: ", "))")
+                    
+                    // Check if target app is found in this page
+                    if appNames.contains(where: { $0.lowercased().contains(targetAppName.lowercased()) }) {
+                        print("🎯 Found \(targetAppName) on page \(pageNumber-1)!")
+                        foundAppImage = screenshot
+                        foundOnPage = pageNumber-1
+                        apiResponse = results.joined(separator: "\n\n") + "\n\n🎯 Found \(targetAppName) on page \(foundOnPage)! Analyzing position..."
+                        
+                        // Send to Anthropic to find coordinates
+                        await findAppCoordinates(image: screenshot, appName: targetAppName, pageNumber: foundOnPage)
+                        isAnalyzing = false
+                        return
+                    }
+                } else {
+                    results.append("Page \(pageNumber-1): No apps detected")
+                    print("❌ No apps detected on page \(pageNumber-1)")
+                }
+                
+                apiResponse = results.joined(separator: "\n\n")
+            }
+            
+            // Check for App Library
+            if await detectAppLibrary(in: screenshot) {
+                print("📚 Found App Library on page \(pageNumber)")
+                apiResponse = results.joined(separator: "\n\n") + "\n\n❌ App \(targetAppName) not found in any pages"
+                break
+            }
+            
+            // Check for duplicates
+            if let lastImg = lastImage, await imagesAreSimilar(lastImg, screenshot) {
+                print("🔄 Reached duplicate page, ending scan")
+                apiResponse = results.joined(separator: "\n\n") + "\n\n❌ App \(targetAppName) not found in any pages"
+                break
+            }
+            lastImage = screenshot
+            
+            // Swipe to next page
+            if pageNumber < maxPages {
+                print("➡️ Swiping to next page")
+                await simulateSwipe(direction: .right)
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+            }
+            
+            pageNumber += 1
+        }
+        
+        if pageNumber > maxPages {
+            print("⚠️ Reached maximum pages without finding \(targetAppName)")
+            apiResponse = results.joined(separator: "\n\n") + "\n\n⚠️ Reached maximum pages - \(targetAppName) not found"
+        }
+        
+        isAnalyzing = false
+    }
+    
+    private func findAppCoordinates(image: NSImage, appName: String, pageNumber: Int) async {
+        let provider = useOpenAI ? "OpenAI GPT-4 Vision" : "Anthropic Claude"
+        print("🤖 Sending screenshot to \(provider) to find \(appName) coordinates")
+        
+        if useOpenAI && openaiApiKey.isEmpty {
+            print("❌ No OpenAI API key found")
+            showingOpenAIKeyAlert = true
+            return
+        } else if !useOpenAI && apiKey.isEmpty {
+            print("❌ No Anthropic API key found")
+            showingApiKeyAlert = true
+            return
+        }
+        
+        // Log original image dimensions
+        print("📐 Original NSImage size: \(image.size.width) × \(image.size.height)")
+        
+        // Convert to base64
+        guard let imageData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: imageData),
+              let pngData = bitmap.representation(using: .png, properties: [:]) else {
+            print("❌ Failed to process image for API")
+            apiResponse += "\n\n❌ Failed to process image for coordinate detection"
+            return
+        }
+        
+        // Log actual bitmap dimensions
+        print("📐 Bitmap dimensions: \(bitmap.pixelsWide) × \(bitmap.pixelsHigh) pixels")
+        print("📦 PNG data size: \(pngData.count) bytes")
+        
+        let base64Image = pngData.base64EncodedString()
+        
+        do {
+            let response: String
+            if useOpenAI {
+                response = try await sendOpenAIVisionRequest(base64Image: base64Image, appName: appName, imageWidth: bitmap.pixelsWide, imageHeight: bitmap.pixelsHigh)
+            } else {
+                response = try await sendAnthropicRequest(base64Image: base64Image, appName: appName, imageWidth: bitmap.pixelsWide, imageHeight: bitmap.pixelsHigh)
+            }
+            print("🤖 \(provider) response: \(response)")
+            
+            // Parse coordinates from response
+            if let coordinates = parseCoordinates(from: response) {
+                print("📍 Parsed coordinates: x=\(coordinates.x), y=\(coordinates.y)")
+                APILogger.shared.logCoordinates(appName: appName, coordinates: coordinates)
+                apiResponse += "\n\n📍 Found \(appName) at coordinates (\(coordinates.x), \(coordinates.y))"
+                
+                // Simulate double click with actual image dimensions
+                await simulateDoubleClickAtCoordinates(x: coordinates.x, y: coordinates.y, imageWidth: bitmap.pixelsWide, imageHeight: bitmap.pixelsHigh)
+            } else {
+                print("❌ Could not parse coordinates from response")
+                APILogger.shared.logCoordinates(appName: appName, coordinates: nil)
+                apiResponse += "\n\n❌ Could not detect \(appName) coordinates in image"
+            }
+        } catch {
+            print("❌ API Error: \(error.localizedDescription)")
+            APILogger.shared.logError(appName: appName, error: error.localizedDescription)
+            apiResponse += "\n\n❌ API Error: \(error.localizedDescription)"
+        }
+    }
+    
+    private func parseCoordinates(from response: String) -> (x: Int, y: Int)? {
+        // Look for patterns like (x,y) or x=123, y=456
+        let patterns = [
+            #"\((\d+),\s*(\d+)\)"#,  // (123, 456)
+            #"x[=:]\s*(\d+)[,\s]+y[=:]\s*(\d+)"#,  // x=123, y=456 or x:123 y:456
+            #"(\d+)[,\s]+(\d+)"#  // 123, 456
+        ]
+        
+        for pattern in patterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+                let range = NSRange(location: 0, length: response.utf16.count)
+                if let match = regex.firstMatch(in: response, options: [], range: range) {
+                    if match.numberOfRanges >= 3 {
+                        let xRange = match.range(at: 1)
+                        let yRange = match.range(at: 2)
+                        
+                        if let xString = Range(xRange, in: response),
+                           let yString = Range(yRange, in: response),
+                           let x = Int(response[xString]),
+                           let y = Int(response[yString]) {
+                            return (x: x, y: y)
+                        }
+                    }
+                }
+            }
+        }
+        return nil
+    }
+    
+    private func simulateDoubleClickAtCoordinates(x: Int, y: Int, imageWidth: Int, imageHeight: Int) async {
+        print("🖱️ Simulating double click at image coordinates (\(x), \(y))")
+        
+        guard let iPhoneWindow = screenCaptureManager.iPhoneWindow else {
+            print("❌ No iPhone window found")
+            return
+        }
+        
+        // Get the current window frame directly from the window object (fresh)
+        let iPhoneFrame = iPhoneWindow.frame
+        
+        // Activate iPhone Mirroring window properly
+        print("🔄 Activating iPhone Mirroring window...")
+        await activateIPhoneMirrorWindow(iPhoneWindow)
+        try? await Task.sleep(nanoseconds: 500_000_000) // Wait longer for window activation
+        
+        // Also try to bring window to front using window ID
+        let windowID = iPhoneWindow.windowID
+        print("📱 iPhone window ID: \(windowID)")
+        
+        // Alternative activation method - click on window first to ensure it's active
+        let windowCenter = CGPoint(
+            x: iPhoneFrame.minX + iPhoneFrame.width / 2,
+            y: iPhoneFrame.minY + iPhoneFrame.height / 2
+        )
+        print("🎯 Clicking window center first: (\(windowCenter.x), \(windowCenter.y))")
+        
+        // Single click to activate window
+        CGWarpMouseCursorPosition(windowCenter)
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        
+        if let activateClick = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: windowCenter, mouseButton: .left) {
+            activateClick.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        if let activateRelease = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: windowCenter, mouseButton: .left) {
+            activateRelease.post(tap: .cghidEventTap)
+        }
+        
+        try? await Task.sleep(nanoseconds: 500_000_000) // Wait for window to become active
+        
+        // Also update our stored frame
+        await MainActor.run {
+            screenCaptureManager.windowFrame = iPhoneFrame
+        }
+        print("📱 iPhone window frame: \(iPhoneFrame)")
+        print("📍 Window origin: (\(iPhoneFrame.minX), \(iPhoneFrame.minY))")
+        print("📏 Window size: \(iPhoneFrame.width) × \(iPhoneFrame.height)")
+        print("🎯 Window spans: X=\(iPhoneFrame.minX) to \(iPhoneFrame.minX + iPhoneFrame.width), Y=\(iPhoneFrame.minY) to \(iPhoneFrame.minY + iPhoneFrame.height)")
+        
+        // Get screen information for debugging
+        print("🖥️ All screens:")
+        for (index, screen) in NSScreen.screens.enumerated() {
+            print("   Screen \(index): frame=\(screen.frame), visible=\(screen.visibleFrame)")
+        }
+        if let screen = NSScreen.main {
+            print("🖥️ Main screen frame: \(screen.frame)")
+            print("🖥️ Main screen visible frame: \(screen.visibleFrame)")
+        }
+        
+        // Try to find the actual window using NSWindow if possible
+        print("🔍 Searching for iPhone Mirroring window in NSApplication...")
+        for window in NSApplication.shared.windows {
+            let title = window.title
+            if title.contains("iPhone") || title.contains("Mirror") {
+                print("   Found NSWindow: '\(title)' at frame: \(window.frame)")
+            }
+        }
+        
+        // Check if the SCWindow frame makes sense
+        var correctedFrame = iPhoneFrame
+        if iPhoneFrame.minX < -100 || iPhoneFrame.minX > 2000 {
+            print("⚠️ WARNING: SCWindow frame looks suspicious: \(iPhoneFrame)")
+            print("   This suggests the window coordinates might be wrong")
+            
+            // Try to get real window position using AppleScript
+            print("🍎 Getting iPhone Mirroring window position via AppleScript...")
+            if let realPosition = getIPhoneMirroringWindowPosition() {
+                print("🍎 AppleScript found iPhone window at: \(realPosition)")
+                correctedFrame = CGRect(
+                    x: realPosition.x, 
+                    y: realPosition.y, 
+                    width: iPhoneFrame.width, 
+                    height: iPhoneFrame.height
+                )
+                print("🔧 Using AppleScript corrected frame: \(correctedFrame)")
+            } else {
+                print("🍎 AppleScript failed, using manual override...")
+                correctedFrame = CGRect(x: 600, y: 150, width: 430, height: 942)
+                print("🔧 Corrected frame: \(correctedFrame)")
+            }
+        }
+        
+        // Scale coordinates from actual image size to window size
+        let actualImageWidth = CGFloat(imageWidth)
+        let actualImageHeight = CGFloat(imageHeight)
+        let windowWidth = correctedFrame.width
+        let windowHeight = correctedFrame.height
+        
+        print("🖼️ Image dimensions: \(actualImageWidth) × \(actualImageHeight)")
+        print("🪟 Window dimensions: \(windowWidth) × \(windowHeight)")
+        
+        let scaleX = windowWidth / actualImageWidth
+        let scaleY = windowHeight / actualImageHeight
+        
+        let scaledX = CGFloat(x) * scaleX
+        let scaledY = CGFloat(y) * scaleY
+        
+        print("📏 Scale factors: X=\(scaleX), Y=\(scaleY)")
+        print("📍 Scaled coordinates: (\(scaledX), \(scaledY))")
+        
+        // Check if coordinates make sense
+        print("🤔 Debugging coordinate calculation:")
+        print("   Image coords from Claude: (\(x), \(y))")
+        print("   Scaled to window: (\(scaledX), \(scaledY))")
+        print("   Window origin: (\(correctedFrame.minX), \(correctedFrame.minY))")
+        
+        // Convert to absolute screen coordinates
+        let absoluteX = correctedFrame.minX + scaledX
+        let absoluteY = correctedFrame.minY + scaledY
+        
+        print("   Final absolute: (\(absoluteX), \(absoluteY))")
+        
+        let clickLocation = CGPoint(x: absoluteX, y: absoluteY)
+        print("🖱️ Final absolute click location: (\(absoluteX), \(absoluteY))")
+        
+        // Verify coordinates are within window bounds
+        let windowMaxX = correctedFrame.minX + correctedFrame.width
+        let windowMaxY = correctedFrame.minY + correctedFrame.height
+        
+        if absoluteX < correctedFrame.minX || absoluteX > windowMaxX ||
+           absoluteY < correctedFrame.minY || absoluteY > windowMaxY {
+            print("⚠️ WARNING: Click coordinates are outside iPhone window bounds!")
+            print("   Window bounds: (\(correctedFrame.minX), \(correctedFrame.minY)) to (\(windowMaxX), \(windowMaxY))")
+            print("   Calculated click: (\(absoluteX), \(absoluteY))")
+        } else {
+            print("✅ Click coordinates are within window bounds")
+        }
+        
+        // Move cursor to click location and pause for visual verification
+        print("🎯 Moving cursor to click location...")
+        NSSound.beep() // Beep when moving cursor
+        CGWarpMouseCursorPosition(clickLocation)
+        
+        // Wait longer so you can see where the cursor moved
+        print("⏱️ Pausing 2 seconds so you can see cursor position...")
+        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+        
+        print("🖱️ Starting double click...")
+        NSSound.beep() // Beep before clicking
+        
+        // First click
+        if let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: clickLocation, mouseButton: .left) {
+            mouseDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        if let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: clickLocation, mouseButton: .left) {
+            mouseUp.post(tap: .cghidEventTap)
+        }
+        
+        // Short delay between clicks
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        
+        // Second click
+        if let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: clickLocation, mouseButton: .left) {
+            mouseDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        if let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: clickLocation, mouseButton: .left) {
+            mouseUp.post(tap: .cghidEventTap)
+        }
+        
+        NSSound.beep() // Beep after clicking
+        print("✅ Double click completed at scaled coordinates (\(Int(scaledX)), \(Int(scaledY)))")
+        apiResponse += "\n\n✅ Double-clicked \(targetAppName) at scaled coordinates (\(Int(scaledX)), \(Int(scaledY)))"
+    }
+    
+    private func getIPhoneMirroringWindowPosition() -> CGPoint? {
+        let script = """
+        tell application "System Events"
+            tell application process "iPhone Mirroring"
+                get position of front window
+            end tell
+        end tell
+        """
+        
+        if let appleScript = NSAppleScript(source: script) {
+            var error: NSDictionary?
+            let result = appleScript.executeAndReturnError(&error)
+            
+            if let error = error {
+                print("🍎 AppleScript error: \(error)")
+                return nil
+            }
+            
+            if let resultString = result.stringValue {
+                print("🍎 AppleScript result: \(resultString)")
+                
+                // Parse result like "{123, 456}" or "123, 456"
+                let cleaned = resultString.replacingOccurrences(of: "{", with: "").replacingOccurrences(of: "}", with: "")
+                let components = cleaned.components(separatedBy: ",")
+                
+                if components.count >= 2,
+                   let x = Double(components[0].trimmingCharacters(in: .whitespaces)),
+                   let y = Double(components[1].trimmingCharacters(in: .whitespaces)) {
+                    return CGPoint(x: x, y: y)
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private func sendOpenAIVisionRequest(base64Image: String, appName: String, imageWidth: Int, imageHeight: Int) async throws -> String {
+        guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
+            throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(openaiApiKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30.0
+        
+        let promptText = """
+        This is a \(imageWidth) × \(imageHeight) pixel iPhone screenshot. Find the \(appName) app icon.
+
+        Return the exact center pixel coordinates as (x,y) where:
+        - x: horizontal position (0-\(imageWidth), left to right)  
+        - y: vertical position (0-\(imageHeight), top to bottom)
+        - (0,0) = top-left corner
+
+        Format: (x,y) only, or 'not found' if not visible.
+        """
+        
+        // Log the request
+        APILogger.shared.logRequest(appName: appName, prompt: promptText)
+        
+        let payload: [String: Any] = [
+            "model": "gpt-4o", // GPT-4 with vision
+            "max_tokens": 300,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "text",
+                            "text": promptText
+                        ],
+                        [
+                            "type": "image_url",
+                            "image_url": [
+                                "url": "data:image/png;base64,\(base64Image)"
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        } catch {
+            throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to encode request: \(error.localizedDescription)"])
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        var httpStatus = 0
+        if let httpResponse = response as? HTTPURLResponse {
+            httpStatus = httpResponse.statusCode
+            print("🌐 OpenAI HTTP Status: \(httpResponse.statusCode)")
+            if httpResponse.statusCode != 200 {
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                APILogger.shared.logError(appName: appName, error: "HTTP \(httpResponse.statusCode): \(errorMessage)")
+                throw NSError(domain: "APIError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode): \(errorMessage)"])
+            }
+        }
+        
+        do {
+            let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            
+            if let error = jsonResponse?["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                APILogger.shared.logError(appName: appName, error: "API Error: \(message)")
+                throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "API Error: \(message)"])
+            }
+            
+            if let choices = jsonResponse?["choices"] as? [[String: Any]],
+               let firstChoice = choices.first,
+               let message = firstChoice["message"] as? [String: Any],
+               let content = message["content"] as? String {
+                APILogger.shared.logResponse(appName: appName, response: content, httpStatus: httpStatus)
+                return content
+            }
+            
+            APILogger.shared.logError(appName: appName, error: "Invalid response format")
+            throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid response format"])
+        } catch {
+            APILogger.shared.logError(appName: appName, error: "Failed to parse response: \(error.localizedDescription)")
+            throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to parse response: \(error.localizedDescription)"])
+        }
+    }
+    
+    private func sendAnthropicRequest(base64Image: String, appName: String, imageWidth: Int, imageHeight: Int) async throws -> String {
+        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
+            throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.timeoutInterval = 30.0
+        
+//        let promptText = "There's a screenshot of iPhone screen. I'm looking for the app \(appName). Is there such an app? If so, please return the (x,y) coordinates of the main icon of this app. Only respond with the coordinates in format (x,y) or 'not found'."
+        
+        let promptText = """
+        This is a \(imageWidth) × \(imageHeight) pixel iPhone screenshot. Find the \(appName) app icon (purple square with white camera icon).
+
+        The \(appName) icon is located in the app grid area, NOT in the dock at the bottom.
+
+        Return the pixel coordinates of the CENTER of the purple \(appName) icon itself (not the text label below it).
+
+        Coordinates should be:
+        - x: horizontal position (0-\(imageWidth), left to right)  
+        - y: vertical position (0-\(imageHeight), top to bottom)
+        - (0,0) = top-left corner
+
+        Format: (x,y) only
+        """;
+        
+//        let promptText = """
+//        In this \(imageWidth) × \(imageHeight) iPhone screenshot, find the \(appName) purple icon and give me ONLY the coordinates in format (x,y).
+//        
+//        Do not show your work or calculations. Just the coordinates.
+//        """
+
+        
+        // Log the request
+        APILogger.shared.logRequest(appName: appName, prompt: promptText)
+        
+        let payload: [String: Any] = [
+            "model": "claude-3-5-sonnet-20241022",
+            "max_tokens": 1024,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "image",
+                            "source": [
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": base64Image
+                            ]
+                        ],
+                        [
+                            "type": "text",
+                            "text": promptText
+                        ]
+                    ]
+                ]
+            ]
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        } catch {
+            throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to encode request: \(error.localizedDescription)"])
+        }
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        var httpStatus = 0
+        if let httpResponse = response as? HTTPURLResponse {
+            httpStatus = httpResponse.statusCode
+            print("🌐 API HTTP Status: \(httpResponse.statusCode)")
+            if httpResponse.statusCode != 200 {
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                APILogger.shared.logError(appName: appName, error: "HTTP \(httpResponse.statusCode): \(errorMessage)")
+                throw NSError(domain: "APIError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode): \(errorMessage)"])
+            }
+        }
+        
+        do {
+            let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            
+            if let error = jsonResponse?["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                APILogger.shared.logError(appName: appName, error: "API Error: \(message)")
+                throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "API Error: \(message)"])
+            }
+            
+            if let content = jsonResponse?["content"] as? [[String: Any]],
+               let firstContent = content.first,
+               let text = firstContent["text"] as? String {
+                APILogger.shared.logResponse(appName: appName, response: text, httpStatus: httpStatus)
+                return text
+            }
+            
+            APILogger.shared.logError(appName: appName, error: "Invalid response format")
+            throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid response format"])
+        } catch {
+            APILogger.shared.logError(appName: appName, error: "Failed to parse response: \(error.localizedDescription)")
+            throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to parse response: \(error.localizedDescription)"])
+        }
     }
     
     private func saveImageToDownloads(_ image: NSImage, fileName: String) async -> Bool {
@@ -681,6 +1446,53 @@ struct ContentView: View {
         }
     }
     
+    private func extractAppNames(from image: NSImage) async -> [String] {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return []
+        }
+        
+        return await withCheckedContinuation { continuation in
+            let request = VNRecognizeTextRequest { request, error in
+                guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                    continuation.resume(returning: [])
+                    return
+                }
+                
+                var appNames: [String] = []
+                
+                for observation in observations {
+                    guard let topCandidate = observation.topCandidates(1).first else { continue }
+                    let text = topCandidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    // Filter out common non-app text and short strings
+                    if !text.isEmpty && 
+                       text.count >= 2 && 
+                       text.count <= 25 && 
+                       !text.contains("•") &&
+                       !text.lowercased().contains("app library") &&
+                       !text.contains("AM") &&
+                       !text.contains("PM") &&
+                       !text.matches("[0-9]{1,2}:[0-9]{2}") &&
+                       !text.matches("^[0-9]+$") &&
+                       topCandidate.confidence > 0.3 {
+                        appNames.append(text)
+                    }
+                }
+                
+                // Remove duplicates and sort
+                let uniqueAppNames = Array(Set(appNames)).sorted()
+                continuation.resume(returning: uniqueAppNames)
+            }
+            
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+            request.recognitionLanguages = ["en-US"]
+            
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            try? handler.perform([request])
+        }
+    }
+
     private func sendToAnthropicAPI(base64Image: String) async throws -> String {
         guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
             throw NSError(domain: "APIError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
@@ -785,6 +1597,12 @@ struct Keychain {
         } else {
             return nil
         }
+    }
+}
+
+extension String {
+    func matches(_ regex: String) -> Bool {
+        return self.range(of: regex, options: .regularExpression, range: nil, locale: nil) != nil
     }
 }
 
