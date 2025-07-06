@@ -110,6 +110,8 @@ struct ContentView: View {
     @State private var openaiApiKey = ""
     @State private var useOpenAI = true // Use OpenAI by default
     @State private var showingOpenAIKeyAlert = false
+    @State private var textToType = ""
+    @State private var addCRLF = false
     
     var body: some View {
         HStack {
@@ -274,30 +276,85 @@ struct ContentView: View {
                             .frame(width: 40, height: 30)
                         }
                         
-                        HStack(spacing: 5) {
-                            Button("⌘1") {
-                                Task {
-                                    await simulateCommand1()
+                        VStack {
+                            HStack(spacing: 5) {
+                                Button("⌘1") {
+                                    Task {
+                                        await simulateCommand1()
+                                    }
                                 }
+                                .frame(width: 30, height: 30)
+                                .font(.caption2)
+                                
+                                Button("⌘2") {
+                                    Task {
+                                        await simulateCommand2()
+                                    }
+                                }
+                                .frame(width: 30, height: 30)
+                                .font(.caption2)
+                                
+                                Button("⌘3") {
+                                    Task {
+                                        await simulateCommand3()
+                                    }
+                                }
+                                .frame(width: 30, height: 30)
+                                .font(.caption2)
                             }
-                            .frame(width: 30, height: 30)
-                            .font(.caption2)
                             
-                            Button("⌘2") {
-                                Task {
-                                    await simulateCommand2()
+                            VStack(spacing: 5) {
+                                TextField("Text to type", text: $textToType)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(width: 140)
+                                    .font(.caption)
+                                
+                                HStack {
+                                    Toggle("+ CRLF", isOn: $addCRLF)
+                                        .font(.caption2)
+                                        .toggleStyle(CheckboxToggleStyle())
+                                }
+                                
+                                VStack(spacing: 3) {
+                                    Button("Type Text") {
+                                        Task {
+                                            await simulateTextInput()
+                                        }
+                                    }
+                                    .frame(width: 80, height: 25)
+                                    .font(.caption2)
+                                    .disabled(textToType.isEmpty)
+                                    
+                                    Button("⌘3+Text") {
+                                        Task {
+                                            await simulateCommand3AndText()
+                                        }
+                                    }
+                                    .frame(width: 80, height: 25)
+                                    .font(.caption2)
+                                    .disabled(textToType.isEmpty)
+                                    
+                                    HStack(spacing: 5) {
+                                        Button("📷 IG") {
+                                            Task {
+                                                await simulateCommand3AndInstagram()
+                                            }
+                                        }
+                                        .frame(width: 37, height: 25)
+                                        .font(.caption2)
+                                        .foregroundColor(.pink)
+                                        
+                                        Button("💬 WA") {
+                                            Task {
+                                                await simulateCommand3AndWhatsApp()
+                                            }
+                                        }
+                                        .frame(width: 37, height: 25)
+                                        .font(.caption2)
+                                        .foregroundColor(.green)
+                                    }
                                 }
                             }
-                            .frame(width: 30, height: 30)
-                            .font(.caption2)
-                            
-                            Button("⌘3") {
-                                Task {
-                                    await simulateCommand3()
-                                }
-                            }
-                            .frame(width: 30, height: 30)
-                            .font(.caption2)
                         }
                     }
                 }
@@ -701,6 +758,335 @@ struct ContentView: View {
         keyDown?.post(tap: .cghidEventTap)
         try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
         keyUp?.post(tap: .cghidEventTap)
+    }
+    
+    private func simulateTextInput() async {
+        guard let iPhoneWindow = screenCaptureManager.iPhoneWindow else { 
+            NSSound.beep()
+            return 
+        }
+        
+        guard !textToType.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        
+        let iPhoneFrame = screenCaptureManager.windowFrame
+        let centerPoint = CGPoint(x: iPhoneFrame.midX, y: iPhoneFrame.midY)
+        
+        CGWarpMouseCursorPosition(centerPoint)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        
+        // Click to focus
+        if let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        if let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseUp.post(tap: .cghidEventTap)
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        NSSound.beep()
+        
+        // Map characters to virtual key codes
+        for character in textToType.lowercased() {
+            var keyCode: CGKeyCode? = nil
+            var needShift = false
+            
+            switch character {
+            case "a": keyCode = 0x00
+            case "b": keyCode = 0x0B
+            case "c": keyCode = 0x08
+            case "d": keyCode = 0x02
+            case "e": keyCode = 0x0E
+            case "f": keyCode = 0x03
+            case "g": keyCode = 0x05
+            case "h": keyCode = 0x04
+            case "i": keyCode = 0x22
+            case "j": keyCode = 0x26
+            case "k": keyCode = 0x28
+            case "l": keyCode = 0x25
+            case "m": keyCode = 0x2E
+            case "n": keyCode = 0x2D
+            case "o": keyCode = 0x1F
+            case "p": keyCode = 0x23
+            case "q": keyCode = 0x0C
+            case "r": keyCode = 0x0F
+            case "s": keyCode = 0x01
+            case "t": keyCode = 0x11
+            case "u": keyCode = 0x20
+            case "v": keyCode = 0x09
+            case "w": keyCode = 0x0D
+            case "x": keyCode = 0x07
+            case "y": keyCode = 0x10
+            case "z": keyCode = 0x06
+            case " ": keyCode = 0x31 // space
+            case "1": keyCode = 0x12
+            case "2": keyCode = 0x13
+            case "3": keyCode = 0x14
+            default: continue
+            }
+            
+            if let key = keyCode {
+                let flags: CGEventFlags = needShift ? .maskShift : []
+                
+                if let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: key, keyDown: true) {
+                    keyDown.flags = flags
+                    keyDown.post(tap: .cghidEventTap)
+                }
+                try? await Task.sleep(nanoseconds: 50_000_000)
+                if let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: key, keyDown: false) {
+                    keyUp.flags = flags
+                    keyUp.post(tap: .cghidEventTap)
+                }
+                try? await Task.sleep(nanoseconds: 10_000_000)
+            }
+        }
+        
+        // Add CRLF (Enter key) if checkbox is checked
+        if addCRLF {
+            let enterKeyCode: CGKeyCode = 0x24 // Return/Enter key
+            
+            if let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: enterKeyCode, keyDown: true) {
+                keyDown.post(tap: .cghidEventTap)
+            }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            if let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: enterKeyCode, keyDown: false) {
+                keyUp.post(tap: .cghidEventTap)
+            }
+        }
+    }
+    
+    private func simulateCommand3AndText() async {
+        guard let iPhoneWindow = screenCaptureManager.iPhoneWindow else { 
+            NSSound.beep()
+            return 
+        }
+        
+        guard !textToType.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        
+        let iPhoneFrame = screenCaptureManager.windowFrame
+        let centerPoint = CGPoint(x: iPhoneFrame.midX, y: iPhoneFrame.midY)
+        
+        CGWarpMouseCursorPosition(centerPoint)
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
+        // Single click to focus window
+        if let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        if let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseUp.post(tap: .cghidEventTap)
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        NSSound.beep()
+        
+        // First: Send Command-3
+        let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: 0x14, keyDown: true) // Key code 0x14 is "3"
+        let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: 0x14, keyDown: false)
+        keyDown?.flags = .maskCommand
+        keyUp?.flags = .maskCommand
+        keyDown?.post(tap: .cghidEventTap)
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        keyUp?.post(tap: .cghidEventTap)
+        
+        // Longer delay after Command-3 to ensure page transition completes
+        try? await Task.sleep(nanoseconds: 500_000_000) // 500ms delay
+        
+        // Then: Type the text
+        for character in textToType.lowercased() {
+            var keyCode: CGKeyCode? = nil
+            var needShift = false
+            
+            switch character {
+            case "a": keyCode = 0x00
+            case "b": keyCode = 0x0B
+            case "c": keyCode = 0x08
+            case "d": keyCode = 0x02
+            case "e": keyCode = 0x0E
+            case "f": keyCode = 0x03
+            case "g": keyCode = 0x05
+            case "h": keyCode = 0x04
+            case "i": keyCode = 0x22
+            case "j": keyCode = 0x26
+            case "k": keyCode = 0x28
+            case "l": keyCode = 0x25
+            case "m": keyCode = 0x2E
+            case "n": keyCode = 0x2D
+            case "o": keyCode = 0x1F
+            case "p": keyCode = 0x23
+            case "q": keyCode = 0x0C
+            case "r": keyCode = 0x0F
+            case "s": keyCode = 0x01
+            case "t": keyCode = 0x11
+            case "u": keyCode = 0x20
+            case "v": keyCode = 0x09
+            case "w": keyCode = 0x0D
+            case "x": keyCode = 0x07
+            case "y": keyCode = 0x10
+            case "z": keyCode = 0x06
+            case " ": keyCode = 0x31 // space
+            case "1": keyCode = 0x12
+            case "2": keyCode = 0x13
+            case "3": keyCode = 0x14
+            default: continue
+            }
+            
+            if let key = keyCode {
+                let flags: CGEventFlags = needShift ? .maskShift : []
+                
+                if let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: key, keyDown: true) {
+                    keyDown.flags = flags
+                    keyDown.post(tap: .cghidEventTap)
+                }
+                try? await Task.sleep(nanoseconds: 80_000_000) // Increased from 50ms to 80ms
+                if let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: key, keyDown: false) {
+                    keyUp.flags = flags
+                    keyUp.post(tap: .cghidEventTap)
+                }
+                try? await Task.sleep(nanoseconds: 30_000_000) // Increased from 10ms to 30ms
+            }
+        }
+        
+        // Add extra delay before CRLF
+        try? await Task.sleep(nanoseconds: 200_000_000) // 200ms delay before Enter
+        
+        // Finally: Always add CRLF (Enter key) regardless of checkbox
+        let enterKeyCode: CGKeyCode = 0x24 // Return/Enter key
+        
+        if let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: enterKeyCode, keyDown: true) {
+            keyDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 100_000_000) // Increased from 50ms to 100ms
+        if let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: enterKeyCode, keyDown: false) {
+            keyUp.post(tap: .cghidEventTap)
+        }
+    }
+    
+    private func simulateCommand3AndInstagram() async {
+        await simulateCommand3AndAppName("instagram")
+    }
+    
+    private func simulateCommand3AndWhatsApp() async {
+        await simulateCommand3AndAppName("whatsapp")
+    }
+    
+    private func simulateCommand3AndAppName(_ appName: String) async {
+        guard let iPhoneWindow = screenCaptureManager.iPhoneWindow else { 
+            NSSound.beep()
+            return 
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        
+        let iPhoneFrame = screenCaptureManager.windowFrame
+        let centerPoint = CGPoint(x: iPhoneFrame.midX, y: iPhoneFrame.midY)
+        
+        CGWarpMouseCursorPosition(centerPoint)
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
+        // Single click to focus window
+        if let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        if let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseUp.post(tap: .cghidEventTap)
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        NSSound.beep()
+        
+        // First: Send Command-3
+        let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: 0x14, keyDown: true) // Key code 0x14 is "3"
+        let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: 0x14, keyDown: false)
+        keyDown?.flags = .maskCommand
+        keyUp?.flags = .maskCommand
+        keyDown?.post(tap: .cghidEventTap)
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        keyUp?.post(tap: .cghidEventTap)
+        
+        // Longer delay after Command-3 to ensure page transition completes
+        try? await Task.sleep(nanoseconds: 500_000_000) // 500ms delay
+        
+        // Then: Type the app name
+        for character in appName.lowercased() {
+            var keyCode: CGKeyCode? = nil
+            var needShift = false
+            
+            switch character {
+            case "a": keyCode = 0x00
+            case "b": keyCode = 0x0B
+            case "c": keyCode = 0x08
+            case "d": keyCode = 0x02
+            case "e": keyCode = 0x0E
+            case "f": keyCode = 0x03
+            case "g": keyCode = 0x05
+            case "h": keyCode = 0x04
+            case "i": keyCode = 0x22
+            case "j": keyCode = 0x26
+            case "k": keyCode = 0x28
+            case "l": keyCode = 0x25
+            case "m": keyCode = 0x2E
+            case "n": keyCode = 0x2D
+            case "o": keyCode = 0x1F
+            case "p": keyCode = 0x23
+            case "q": keyCode = 0x0C
+            case "r": keyCode = 0x0F
+            case "s": keyCode = 0x01
+            case "t": keyCode = 0x11
+            case "u": keyCode = 0x20
+            case "v": keyCode = 0x09
+            case "w": keyCode = 0x0D
+            case "x": keyCode = 0x07
+            case "y": keyCode = 0x10
+            case "z": keyCode = 0x06
+            case " ": keyCode = 0x31 // space
+            case "1": keyCode = 0x12
+            case "2": keyCode = 0x13
+            case "3": keyCode = 0x14
+            default: continue
+            }
+            
+            if let key = keyCode {
+                let flags: CGEventFlags = needShift ? .maskShift : []
+                
+                if let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: key, keyDown: true) {
+                    keyDown.flags = flags
+                    keyDown.post(tap: .cghidEventTap)
+                }
+                try? await Task.sleep(nanoseconds: 80_000_000) // 80ms between characters
+                if let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: key, keyDown: false) {
+                    keyUp.flags = flags
+                    keyUp.post(tap: .cghidEventTap)
+                }
+                try? await Task.sleep(nanoseconds: 30_000_000) // 30ms after key up
+            }
+        }
+        
+        // Add extra delay before CRLF
+        try? await Task.sleep(nanoseconds: 200_000_000) // 200ms delay before Enter
+        
+        // Finally: Always add CRLF (Enter key) to search/send
+        let enterKeyCode: CGKeyCode = 0x24 // Return/Enter key
+        
+        if let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: enterKeyCode, keyDown: true) {
+            keyDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        if let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: enterKeyCode, keyDown: false) {
+            keyUp.post(tap: .cghidEventTap)
+        }
     }
     
     private func testSwipeLeft(type: Int) async {
@@ -1799,6 +2185,21 @@ struct Keychain {
 extension String {
     func matches(_ regex: String) -> Bool {
         return self.range(of: regex, options: .regularExpression, range: nil, locale: nil) != nil
+    }
+}
+
+struct CheckboxToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            Image(systemName: configuration.isOn ? "checkmark.square" : "square")
+                .foregroundColor(configuration.isOn ? .blue : .gray)
+                .font(.caption)
+                .onTapGesture {
+                    configuration.isOn.toggle()
+                }
+            
+            configuration.label
+        }
     }
 }
 
