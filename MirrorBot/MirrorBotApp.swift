@@ -13,5 +13,6 @@ struct MirrorBotApp: App {
         WindowGroup {
             ContentView()
         }
+        .windowResizability(.contentSize)
     }
 }
