@@ -273,6 +273,32 @@ struct ContentView: View {
                             }
                             .frame(width: 40, height: 30)
                         }
+                        
+                        HStack(spacing: 5) {
+                            Button("⌘1") {
+                                Task {
+                                    await simulateCommand1()
+                                }
+                            }
+                            .frame(width: 30, height: 30)
+                            .font(.caption2)
+                            
+                            Button("⌘2") {
+                                Task {
+                                    await simulateCommand2()
+                                }
+                            }
+                            .frame(width: 30, height: 30)
+                            .font(.caption2)
+                            
+                            Button("⌘3") {
+                                Task {
+                                    await simulateCommand3()
+                                }
+                            }
+                            .frame(width: 30, height: 30)
+                            .font(.caption2)
+                        }
                     }
                 }
                 
@@ -478,13 +504,38 @@ struct ContentView: View {
     }
     
     private func simulateSwipe(direction: SwipeDirection) async {
-        // Play system beep
-        NSSound.beep()
+        // First, get the iPhone Mirroring window
+        guard let iPhoneWindow = screenCaptureManager.iPhoneWindow else { 
+            NSSound.beep()
+            return 
+        }
         
+        // Reduced delay from 2 seconds to 100ms
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        
+        // Move cursor to center of iPhone window
         let iPhoneFrame = screenCaptureManager.windowFrame
         let centerX = iPhoneFrame.midX
         let centerY = iPhoneFrame.midY
         let centerPoint = CGPoint(x: centerX, y: centerY)
+        
+        // Move cursor to iPhone window center
+        CGWarpMouseCursorPosition(centerPoint)
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
+        // Click to focus window
+        if let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        if let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseUp.post(tap: .cghidEventTap)
+        }
+        
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
+        // Play system beep to indicate swipe is starting
+        NSSound.beep()
         
         if direction == .left || direction == .right {
             // Use working L2/R2 approach: wheelCount 2, horizontal in wheel2
@@ -512,7 +563,7 @@ struct ContentView: View {
                     // Don't set location to avoid any cursor interference
                     scrollEvent.post(tap: .cghidEventTap)
                 }
-                try? await Task.sleep(nanoseconds: 50_000_000) // 50ms delay between events
+                try? await Task.sleep(nanoseconds: 10_000_000) // 10ms delay between events
             }
             
         } else {
@@ -538,9 +589,118 @@ struct ContentView: View {
                     // Don't set location to avoid any cursor interference
                     scrollEvent.post(tap: .cghidEventTap)
                 }
-                try? await Task.sleep(nanoseconds: 50_000_000) // 50ms between events
+                try? await Task.sleep(nanoseconds: 10_000_000) // 10ms between events
             }
         }
+    }
+    
+    private func simulateCommand1() async {
+        guard let iPhoneWindow = screenCaptureManager.iPhoneWindow else { 
+            NSSound.beep()
+            return 
+        }
+        
+        // Reduced delay from 2 seconds to 100ms
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        
+        let iPhoneFrame = screenCaptureManager.windowFrame
+        let centerPoint = CGPoint(x: iPhoneFrame.midX, y: iPhoneFrame.midY)
+        
+        CGWarpMouseCursorPosition(centerPoint)
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
+        // Single click to focus window
+        if let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        if let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseUp.post(tap: .cghidEventTap)
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        NSSound.beep()
+        
+        // Send Command-1
+        let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: 0x12, keyDown: true) // Key code 0x12 is "1"
+        let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: 0x12, keyDown: false)
+        keyDown?.flags = .maskCommand
+        keyUp?.flags = .maskCommand
+        keyDown?.post(tap: .cghidEventTap)
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        keyUp?.post(tap: .cghidEventTap)
+    }
+    
+    private func simulateCommand2() async {
+        guard let iPhoneWindow = screenCaptureManager.iPhoneWindow else { 
+            NSSound.beep()
+            return 
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        
+        let iPhoneFrame = screenCaptureManager.windowFrame
+        let centerPoint = CGPoint(x: iPhoneFrame.midX, y: iPhoneFrame.midY)
+        
+        CGWarpMouseCursorPosition(centerPoint)
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
+        // Single click to focus window
+        if let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        if let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseUp.post(tap: .cghidEventTap)
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        NSSound.beep()
+        
+        // Send Command-2
+        let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: 0x13, keyDown: true) // Key code 0x13 is "2"
+        let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: 0x13, keyDown: false)
+        keyDown?.flags = .maskCommand
+        keyUp?.flags = .maskCommand
+        keyDown?.post(tap: .cghidEventTap)
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        keyUp?.post(tap: .cghidEventTap)
+    }
+    
+    private func simulateCommand3() async {
+        guard let iPhoneWindow = screenCaptureManager.iPhoneWindow else { 
+            NSSound.beep()
+            return 
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        
+        let iPhoneFrame = screenCaptureManager.windowFrame
+        let centerPoint = CGPoint(x: iPhoneFrame.midX, y: iPhoneFrame.midY)
+        
+        CGWarpMouseCursorPosition(centerPoint)
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
+        // Single click to focus window
+        if let mouseDown = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseDown.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        if let mouseUp = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: centerPoint, mouseButton: .left) {
+            mouseUp.post(tap: .cghidEventTap)
+        }
+        
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        NSSound.beep()
+        
+        // Send Command-3
+        let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: 0x14, keyDown: true) // Key code 0x14 is "3"
+        let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: 0x14, keyDown: false)
+        keyDown?.flags = .maskCommand
+        keyUp?.flags = .maskCommand
+        keyDown?.post(tap: .cghidEventTap)
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        keyUp?.post(tap: .cghidEventTap)
     }
     
     private func testSwipeLeft(type: Int) async {
@@ -584,18 +744,54 @@ struct ContentView: View {
     }
     
     private func activateIPhoneMirrorWindow(_ window: SCWindow) async {
-        // Get the window number from SCWindow
-        let windowNumber = window.windowID
+        // Try multiple approaches to ensure iPhone Mirroring becomes the active app
         
-        // Use AppleScript to activate the window
-        let script = """
+        // Method 1: Use AppleScript to activate the iPhone Mirroring application
+        let script1 = """
+        tell application "iPhone Mirroring"
+            activate
+        end tell
+        """
+        
+        if let appleScript = NSAppleScript(source: script1) {
+            var error: NSDictionary?
+            appleScript.executeAndReturnError(&error)
+            if error == nil {
+                print("✅ Successfully activated iPhone Mirroring app")
+                return
+            } else {
+                print("⚠️ Method 1 failed: \(error?.description ?? "unknown error")")
+            }
+        }
+        
+        // Method 2: Use System Events to set frontmost
+        let script2 = """
         tell application "System Events"
             set frontmost of (first process whose name contains "iPhone Mirroring" or name contains "MirrorDisplay") to true
         end tell
         """
         
-        if let appleScript = NSAppleScript(source: script) {
-            appleScript.executeAndReturnError(nil)
+        if let appleScript2 = NSAppleScript(source: script2) {
+            var error: NSDictionary?
+            appleScript2.executeAndReturnError(&error)
+            if error == nil {
+                print("✅ Successfully set iPhone Mirroring as frontmost")
+            } else {
+                print("⚠️ Method 2 failed: \(error?.description ?? "unknown error")")
+            }
+        }
+        
+        // Method 3: Try to click on the window to bring it to front
+        let windowFrame = window.frame
+        let windowCenter = CGPoint(x: windowFrame.midX, y: windowFrame.midY)
+        
+        // Single click to ensure window is active
+        if let clickEvent = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: windowCenter, mouseButton: .left) {
+            clickEvent.post(tap: .cghidEventTap)
+        }
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        if let releaseEvent = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: windowCenter, mouseButton: .left) {
+            releaseEvent.post(tap: .cghidEventTap)
         }
     }
     
