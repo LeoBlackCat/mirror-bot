@@ -1,0 +1,309 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.MirrorBot-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/sources",
+      "importPath" : "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/AIResponseView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/AITaskView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/ControlsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/MirrorBotApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/ScreenCaptureManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/ScreenshotView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/swift-version-39B54973F684ADAB.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "MirrorBot",
+      "moduleOutputPath" : "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/Modules/MirrorBot.swiftmodule",
+      "objects" : [
+        "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AIResponseView.swift.o",
+        "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AITaskView.swift.o",
+        "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ContentView.swift.o",
+        "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ControlsView.swift.o",
+        "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/MirrorBotApp.swift.o",
+        "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenCaptureManager.swift.o",
+        "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenshotView.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx13.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-Onone",
+        "-enable-testing",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "MirrorBot_main",
+        "-swift-version",
+        "5",
+        "-Xfrontend",
+        "-experimental-lazy-typecheck",
+        "-Xfrontend",
+        "-experimental-skip-all-function-bodies",
+        "-Xfrontend",
+        "-experimental-allow-module-with-compiler-errors",
+        "-Xfrontend",
+        "-empty-abi-descriptor",
+        "-plugin-path",
+        "/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-F",
+        "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "mirrorbot"
+      ],
+      "outputFileMapPath" : "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/Modules/MirrorBot.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : true,
+      "sources" : [
+        "/Users/leo/dev/MirrorBot/MirrorBot/AIResponseView.swift",
+        "/Users/leo/dev/MirrorBot/MirrorBot/AITaskView.swift",
+        "/Users/leo/dev/MirrorBot/MirrorBot/ContentView.swift",
+        "/Users/leo/dev/MirrorBot/MirrorBot/ControlsView.swift",
+        "/Users/leo/dev/MirrorBot/MirrorBot/MirrorBotApp.swift",
+        "/Users/leo/dev/MirrorBot/MirrorBot/ScreenCaptureManager.swift",
+        "/Users/leo/dev/MirrorBot/MirrorBot/ScreenshotView.swift"
+      ],
+      "tempsPath" : "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "MirrorBot" : [
+      "/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "MirrorBot",
+      "-package-name",
+      "mirrorbot",
+      "-c",
+      "/Users/leo/dev/MirrorBot/MirrorBot/AIResponseView.swift",
+      "/Users/leo/dev/MirrorBot/MirrorBot/AITaskView.swift",
+      "/Users/leo/dev/MirrorBot/MirrorBot/ContentView.swift",
+      "/Users/leo/dev/MirrorBot/MirrorBot/ControlsView.swift",
+      "/Users/leo/dev/MirrorBot/MirrorBot/MirrorBotApp.swift",
+      "/Users/leo/dev/MirrorBot/MirrorBot/ScreenCaptureManager.swift",
+      "/Users/leo/dev/MirrorBot/MirrorBot/ScreenshotView.swift",
+      "-I",
+      "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx13.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-Onone",
+      "-enable-testing",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "MirrorBot_main",
+      "-swift-version",
+      "5",
+      "-Xfrontend",
+      "-experimental-lazy-typecheck",
+      "-Xfrontend",
+      "-experimental-skip-all-function-bodies",
+      "-Xfrontend",
+      "-experimental-allow-module-with-compiler-errors",
+      "-Xfrontend",
+      "-empty-abi-descriptor",
+      "-plugin-path",
+      "/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-F",
+      "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "mirrorbot",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "MirrorBot" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/AIResponseView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/AITaskView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/ControlsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/MirrorBotApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/ScreenCaptureManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/leo/dev/MirrorBot/MirrorBot/ScreenshotView.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/sources"
+    },
+    "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/swift-version-39B54973F684ADAB.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/swift-version-39B54973F684ADAB.txt"
+    }
+  }
+}

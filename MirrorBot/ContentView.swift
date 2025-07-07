@@ -9,6 +9,9 @@ import SwiftUI
 import ScreenCaptureKit
 import Vision
 import Foundation
+import CoreImage
+import CoreImage.CIFilterBuiltins
+import AppKit
 
 class APILogger {
     static let shared = APILogger()
@@ -113,311 +116,56 @@ struct ContentView: View {
     @State private var textToType = ""
     @State private var addCRLF = false
     
+    // AI Task Management
+    @State private var aiTaskDescription = ""
+    @State private var claudeApiKey = ""
+    @State private var showingClaudeKeyAlert = false
+    
     var body: some View {
         HStack {
             // Left side - Screenshot display
-            VStack {
-                if let image = capturedImage {
-                    Image(nsImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 200, height: 300)
-                        .border(Color.gray, width: 1)
-                } else {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 200, height: 300)
-                        .overlay(
-                            Text("Searching for iPhone Mirroring window...")
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        )
-                }
-                
-                HStack {
-                    Button("Capture iPhone Mirror") {
-                        Task {
-                            isCapturing = true
-                            capturedImage = await screenCaptureManager.captureIPhoneMirrorWindow()
-                            isCapturing = false
-                        }
-                    }
-                    .disabled(isCapturing)
-                    
-                    Button("📸 Analyze") {
-                        Task {
-                            await analyzeScreenshot()
-                        }
-                    }
-                    .disabled(isAnalyzing)
-                    
-                    VStack {
-                        HStack {
-                            Text("App:")
-                            TextField("Instagram", text: $targetAppName)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .frame(width: 100)
-                        }
-                        .font(.caption)
-                        
-                        Button("📱 Scan & Find App") {
-                            Task {
-                                await scanAndFindApp()
-                            }
-                        }
-                        .disabled(isAnalyzing)
-                    }
-                    
-                }
-                .padding(.top, 10)
-                
-                if isCapturing {
-                    ProgressView("Capturing...")
-                        .padding()
-                }
-                
-                if isAnalyzing {
-                    ProgressView("Analyzing...")
-                        .padding()
-                }
-            }
+            ScreenshotView(
+                screenCaptureManager: screenCaptureManager,
+                capturedImage: $capturedImage,
+                isCapturing: $isCapturing,
+                isAnalyzing: $isAnalyzing,
+                targetAppName: $targetAppName,
+                onAnalyze: analyzeScreenshot,
+                onDetectContours: detectContours,
+                onScanAndFindApp: scanAndFindApp
+            )
             
             Divider()
                 .padding(.horizontal)
             
             // Right side - Controls
-            VStack {
-                VStack {
-                    Text("Click Simulation")
-                        .font(.headline)
-                        .padding(.bottom, 5)
-                    
-                    HStack {
-                        Text("X:")
-                        TextField("X", text: $clickX)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .frame(width: 60)
-                        
-                        Text("Y:")
-                        TextField("Y", text: $clickY)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .frame(width: 60)
-                    }
-                    
-                    HStack {
-                        Button("Click") {
-                            Task {
-                                await simulateClick()
-                            }
-                        }
-                        .disabled(clickX.isEmpty || clickY.isEmpty)
-                        
-                        Button("Double Click") {
-                            Task {
-                                await simulateDoubleClick()
-                            }
-                        }
-                        .disabled(clickX.isEmpty || clickY.isEmpty)
-                    }
-                    .padding(.top, 5)
-                }
-                
-                Divider()
-                    .padding(.vertical, 10)
-                
-                VStack {
-                    Text("Swipe/Scroll")
-                        .font(.headline)
-                        .padding(.bottom, 5)
-                    
-                    HStack {
-                        Button("⬆️") {
-                            Task {
-                                await simulateSwipe(direction: .up)
-                            }
-                        }
-                        .frame(width: 40, height: 30)
-                        
-                        Button("⬇️") {
-                            Task {
-                                await simulateSwipe(direction: .down)
-                            }
-                        }
-                        .frame(width: 40, height: 30)
-                    }
-                    
-                    VStack {
-                        HStack {
-                            Text("Int:")
-                            TextField("100", text: $swipeIntensity)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .frame(width: 50)
-                            
-                            Text("×")
-                            TextField("4", text: $swipeMultiplier)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .frame(width: 30)
-                        }
-                        .font(.caption)
-                        
-                        HStack {
-                            Button("⬅️") {
-                                Task {
-                                    await simulateSwipe(direction: .left)
-                                }
-                            }
-                            .frame(width: 40, height: 30)
-                            
-                            Button("➡️") {
-                                Task {
-                                    await simulateSwipe(direction: .right)
-                                }
-                            }
-                            .frame(width: 40, height: 30)
-                        }
-                        
-                        VStack {
-                            HStack(spacing: 5) {
-                                Button("⌘1") {
-                                    Task {
-                                        await simulateCommand1()
-                                    }
-                                }
-                                .frame(width: 30, height: 30)
-                                .font(.caption2)
-                                
-                                Button("⌘2") {
-                                    Task {
-                                        await simulateCommand2()
-                                    }
-                                }
-                                .frame(width: 30, height: 30)
-                                .font(.caption2)
-                                
-                                Button("⌘3") {
-                                    Task {
-                                        await simulateCommand3()
-                                    }
-                                }
-                                .frame(width: 30, height: 30)
-                                .font(.caption2)
-                            }
-                            
-                            VStack(spacing: 5) {
-                                TextField("Text to type", text: $textToType)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .frame(width: 140)
-                                    .font(.caption)
-                                
-                                HStack {
-                                    Toggle("+ CRLF", isOn: $addCRLF)
-                                        .font(.caption2)
-                                        .toggleStyle(CheckboxToggleStyle())
-                                }
-                                
-                                VStack(spacing: 3) {
-                                    Button("Type Text") {
-                                        Task {
-                                            await simulateTextInput()
-                                        }
-                                    }
-                                    .frame(width: 80, height: 25)
-                                    .font(.caption2)
-                                    .disabled(textToType.isEmpty)
-                                    
-                                    Button("⌘3+Text") {
-                                        Task {
-                                            await simulateCommand3AndText()
-                                        }
-                                    }
-                                    .frame(width: 80, height: 25)
-                                    .font(.caption2)
-                                    .disabled(textToType.isEmpty)
-                                    
-                                    HStack(spacing: 5) {
-                                        Button("📷 IG") {
-                                            Task {
-                                                await simulateCommand3AndInstagram()
-                                            }
-                                        }
-                                        .frame(width: 37, height: 25)
-                                        .font(.caption2)
-                                        .foregroundColor(.pink)
-                                        
-                                        Button("💬 WA") {
-                                            Task {
-                                                await simulateCommand3AndWhatsApp()
-                                            }
-                                        }
-                                        .frame(width: 37, height: 25)
-                                        .font(.caption2)
-                                        .foregroundColor(.green)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                Divider()
-                    .padding(.vertical, 10)
-                
-                VStack {
-                    Text("AI Provider")
-                        .font(.headline)
-                        .padding(.bottom, 5)
-                    
-                    VStack {
-                        HStack {
-                            Button(useOpenAI ? "● OpenAI" : "○ OpenAI") {
-                                useOpenAI = true
-                            }
-                            .foregroundColor(useOpenAI ? .blue : .secondary)
-                            
-                            Button(!useOpenAI ? "● Claude" : "○ Claude") {
-                                useOpenAI = false
-                            }
-                            .foregroundColor(!useOpenAI ? .blue : .secondary)
-                        }
-                        .font(.caption)
-                        
-                        Button("⚙️ Keys") {
-                            if useOpenAI {
-                                showingOpenAIKeyAlert = true
-                            } else {
-                                showingApiKeyAlert = true
-                            }
-                        }
-                        .font(.caption)
-                    }
-                }
-                
-                Spacer()
-            }
-            .frame(width: 200)
+            ControlsView(
+                screenCaptureManager: screenCaptureManager,
+                clickX: $clickX,
+                clickY: $clickY,
+                swipeIntensity: $swipeIntensity,
+                swipeMultiplier: $swipeMultiplier,
+                textToType: $textToType,
+                addCRLF: $addCRLF
+            )
+            
+            // AI Task Management Section
+            AITaskView(
+                screenCaptureManager: screenCaptureManager,
+                aiTaskDescription: $aiTaskDescription,
+                claudeApiKey: $claudeApiKey,
+                showingClaudeKeyAlert: $showingClaudeKeyAlert
+            )
             
             // Far right - AI Response
-            if !apiResponse.isEmpty {
-                Divider()
-                    .padding(.horizontal)
-                
-                VStack {
-                    Text("AI Analysis")
-                        .font(.headline)
-                        .padding(.bottom, 5)
-                    
-                    ScrollView {
-                        Text(apiResponse)
-                            .font(.caption)
-                            .foregroundColor(.primary)
-                            .padding()
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
-                            .textSelection(.enabled)
-                    }
-                    .frame(width: 250, height: 300)
-                }
-            }
+            AIResponseView(
+                apiResponse: $apiResponse,
+                apiKey: $apiKey,
+                openaiApiKey: $openaiApiKey,
+                useOpenAI: $useOpenAI,
+                showingApiKeyAlert: $showingApiKeyAlert,
+                showingOpenAIKeyAlert: $showingOpenAIKeyAlert
+            )
         }
         .padding()
         .onAppear {
@@ -471,9 +219,19 @@ struct ContentView: View {
         } message: {
             Text("Please enter your OpenAI API key to use GPT-4 Vision analysis.")
         }
+        .alert("Claude API Key Required", isPresented: $showingClaudeKeyAlert) {
+            SecureField("Enter Claude API Key", text: $claudeApiKey)
+            Button("Save") {
+                saveClaudeApiKey()
+            }
+            Button("Cancel") { }
+        } message: {
+            Text("Please enter your Claude API key to use AI task automation.")
+        }
         .onAppear {
             loadApiKey()
             loadOpenAIApiKey()
+            loadClaudeApiKey()
         }
     }
     
@@ -1089,6 +847,210 @@ struct ContentView: View {
         }
     }
     
+    private func detectContours() async {
+        isAnalyzing = true
+        
+        // Capture screenshot first
+        guard let image = await screenCaptureManager.captureIPhoneMirrorWindow() else {
+            isAnalyzing = false
+            return
+        }
+        
+        // Convert NSImage to CIImage
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            isAnalyzing = false
+            return
+        }
+        
+        let ciImage = CIImage(cgImage: cgImage)
+        
+        // Apply edge detection and contour finding
+        let contourImage = await processImageForContours(ciImage)
+        
+        if let resultImage = contourImage {
+            // Convert back to NSImage and save
+            let context = CIContext()
+            if let outputCGImage = context.createCGImage(resultImage, from: resultImage.extent) {
+                let outputNSImage = NSImage(cgImage: outputCGImage, size: image.size)
+                
+                // Save to Downloads with timestamp for uniqueness
+                let timestamp = Int(Date().timeIntervalSince1970)
+                let fileName = "iPhone_Text_Contours_\(timestamp).png"
+                await saveImageToDownloads(outputNSImage, fileName: fileName)
+                
+                print("✅ Contour detection completed. Saved: \(fileName)")
+            }
+        }
+        
+        isAnalyzing = false
+    }
+    
+    private func processImageForContours(_ inputImage: CIImage) async -> CIImage? {
+        // Use Vision framework to detect text regions directly
+        let contourImage = await findTextContours(inputImage)
+        return contourImage
+    }
+    
+    private func findTextContours(_ inputImage: CIImage) async -> CIImage? {
+        return await withCheckedContinuation { continuation in
+            // Convert CIImage to CGImage for Vision processing
+            let context = CIContext()
+            guard let cgImage = context.createCGImage(inputImage, from: inputImage.extent) else {
+                continuation.resume(returning: nil)
+                return
+            }
+            
+            // Use Vision to detect text
+            let request = VNRecognizeTextRequest { request, error in
+                if let error = error {
+                    print("❌ Text recognition error: \(error)")
+                    continuation.resume(returning: inputImage)
+                    return
+                }
+                
+                guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                    print("❌ No text observations found")
+                    continuation.resume(returning: inputImage)
+                    return
+                }
+                
+                print("🔍 Text detection found \(observations.count) observations")
+                
+                // Process and print text information
+                for (index, observation) in observations.enumerated() {
+                    if let candidate = observation.topCandidates(1).first {
+                        let boundingBox = observation.boundingBox
+                        let imageSize = inputImage.extent.size
+                        
+                        // Convert normalized coordinates to pixel coordinates
+                        let rect = CGRect(
+                            x: boundingBox.origin.x * imageSize.width,
+                            y: (1 - boundingBox.origin.y - boundingBox.height) * imageSize.height,
+                            width: boundingBox.width * imageSize.width,
+                            height: boundingBox.height * imageSize.height
+                        )
+                        
+                        print("📝 Text \(index + 1): '\(candidate.string)'")
+                        print("   📍 Coordinates: x=\(Int(rect.minX)), y=\(Int(rect.minY)), width=\(Int(rect.width)), height=\(Int(rect.height))")
+                        print("   🎯 Center: x=\(Int(rect.midX)), y=\(Int(rect.midY))")
+                    }
+                }
+                
+                // Draw text bounding boxes on original image
+                let resultImage = self.drawTextContours(on: inputImage, textObservations: observations)
+                continuation.resume(returning: resultImage)
+            }
+            
+            // Configure text detection for better UI element detection
+            request.recognitionLevel = .accurate // More accurate text recognition
+            request.usesLanguageCorrection = false // Don't try to correct text
+            request.minimumTextHeight = 0.005 // Detect very small text (0.5% of image height)
+            request.recognitionLanguages = ["en"] // English text
+            
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            
+            do {
+                try handler.perform([request])
+            } catch {
+                print("❌ Text detection error: \(error)")
+                continuation.resume(returning: inputImage)
+            }
+        }
+    }
+    
+    private func drawTextContours(on image: CIImage, textObservations: [VNRecognizedTextObservation]) -> CIImage {
+        let imageSize = image.extent.size
+        print("🎨 Drawing \(textObservations.count) text contours on image size: \(imageSize)")
+        
+        // Convert CIImage to CGImage first
+        let ciContext = CIContext()
+        guard let sourceCGImage = ciContext.createCGImage(image, from: image.extent) else { 
+            print("❌ Failed to convert CIImage to CGImage")
+            return image 
+        }
+        
+        // Create a new bitmap context for drawing
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil,
+            width: Int(imageSize.width),
+            height: Int(imageSize.height),
+            bitsPerComponent: 8,
+            bytesPerRow: Int(imageSize.width) * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            print("❌ Failed to create CGContext")
+            return image
+        }
+        
+        // Draw the original image
+        context.draw(sourceCGImage, in: CGRect(origin: .zero, size: imageSize))
+        
+        // Draw each detected text region with clear outlines
+        for (index, textObservation) in textObservations.enumerated() {
+            let boundingBox = textObservation.boundingBox
+            
+            // Convert normalized coordinates to image coordinates (Vision uses bottom-left origin)
+            let rect = CGRect(
+                x: boundingBox.origin.x * imageSize.width,
+                y: (1 - boundingBox.origin.y - boundingBox.height) * imageSize.height, // Flip Y for top-left origin
+                width: boundingBox.width * imageSize.width,
+                height: boundingBox.height * imageSize.height
+            )
+            
+            print("🖌️ Drawing rect \(index + 1): \(rect)")
+            
+            // Draw filled rectangle background for visibility
+            context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 0.3)) // Semi-transparent red fill
+            context.fill(rect)
+            
+            // Set up bright outline for each text region
+            context.setStrokeColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1.0)) // Bright red outline
+            context.setLineWidth(4.0) // Thicker line
+            context.setLineCap(.round)
+            context.setLineJoin(.round)
+            
+            // Draw thick text bounding box outline
+            context.stroke(rect)
+            
+            // Try to get the recognized text and draw label
+            if let candidate = textObservation.topCandidates(1).first {
+                // Draw yellow label background above the text
+                context.setFillColor(CGColor(red: 1, green: 1, blue: 0, alpha: 0.9)) // Bright yellow background
+                let labelHeight: CGFloat = 25
+                let labelWidth = max(rect.width, 150)
+                let labelRect = CGRect(x: rect.minX, y: rect.minY - labelHeight - 5, width: labelWidth, height: labelHeight)
+                context.fill(labelRect)
+                
+                // Draw black border around label
+                context.setStrokeColor(CGColor(red: 0, green: 0, blue: 0, alpha: 1.0))
+                context.setLineWidth(2.0)
+                context.stroke(labelRect)
+            }
+            
+            // Draw large center dot as click target
+            context.setFillColor(CGColor(red: 0, green: 1, blue: 0, alpha: 1.0)) // Bright green center dot
+            let center = CGPoint(x: rect.midX, y: rect.midY)
+            let dotSize: CGFloat = 12
+            context.fillEllipse(in: CGRect(x: center.x - dotSize/2, y: center.y - dotSize/2, width: dotSize, height: dotSize))
+            
+            // Draw white border around center dot for visibility
+            context.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1.0))
+            context.setLineWidth(3.0)
+            context.strokeEllipse(in: CGRect(x: center.x - dotSize/2, y: center.y - dotSize/2, width: dotSize, height: dotSize))
+        }
+        
+        // Convert back to CIImage
+        guard let resultCGImage = context.makeImage() else {
+            print("❌ Failed to create result CGImage")
+            return image
+        }
+        
+        print("✅ Successfully drew contours on image")
+        return CIImage(cgImage: resultCGImage)
+    }
+    
     private func testSwipeLeft(type: Int) async {
         // 2 second delay + beep
         try? await Task.sleep(nanoseconds: 2_000_000_000)
@@ -1199,6 +1161,16 @@ struct ContentView: View {
     
     private func saveOpenAIApiKey() {
         Keychain.save(key: "openai_api_key", data: openaiApiKey.data(using: .utf8) ?? Data())
+    }
+    
+    private func saveClaudeApiKey() {
+        Keychain.save(key: "claude_api_key", data: claudeApiKey.data(using: .utf8) ?? Data())
+    }
+    
+    private func loadClaudeApiKey() {
+        if let data = Keychain.load(key: "claude_api_key") {
+            claudeApiKey = String(data: data, encoding: .utf8) ?? ""
+        }
     }
     
     private func analyzeScreenshot() async {

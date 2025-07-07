@@ -1,0 +1,48 @@
+---
+path:            '/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx/prebuilt-modules/26.0/Combine.swiftmodule/arm64e-apple-macos.swiftmodule'
+dependencies:
+  - mtime:           1749170735000000000
+    path:            '/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx/prebuilt-modules/26.0/Combine.swiftmodule/arm64e-apple-macos.swiftmodule'
+    size:            491664
+  - mtime:           1747985744000000000
+    path:            'usr/lib/swift/Swift.swiftmodule/arm64e-apple-macos.swiftinterface'
+    size:            2215853
+    sdk_relative:    true
+  - mtime:           1747988041000000000
+    path:            'usr/include/_DarwinFoundation2.apinotes'
+    size:            1145
+    sdk_relative:    true
+  - mtime:           1747988076000000000
+    path:            'usr/lib/swift/_DarwinFoundation1.swiftmodule/arm64e-apple-macos.swiftinterface'
+    size:            18871
+    sdk_relative:    true
+  - mtime:           1747988080000000000
+    path:            'usr/lib/swift/_DarwinFoundation2.swiftmodule/arm64e-apple-macos.swiftinterface'
+    size:            2690
+    sdk_relative:    true
+  - mtime:           1747988080000000000
+    path:            'usr/lib/swift/_DarwinFoundation3.swiftmodule/arm64e-apple-macos.swiftinterface'
+    size:            1635
+    sdk_relative:    true
+  - mtime:           1747987170000000000
+    path:            'usr/lib/swift/_Builtin_float.swiftmodule/arm64e-apple-macos.swiftinterface'
+    size:            4362
+    sdk_relative:    true
+  - mtime:           1747988093000000000
+    path:            'usr/lib/swift/Darwin.swiftmodule/arm64e-apple-macos.swiftinterface'
+    size:            18803
+    sdk_relative:    true
+  - mtime:           1747989206000000000
+    path:            'usr/lib/swift/_Concurrency.swiftmodule/arm64e-apple-macos.swiftinterface'
+    size:            324116
+    sdk_relative:    true
+  - mtime:           1747989310000000000
+    path:            'usr/lib/swift/_StringProcessing.swiftmodule/arm64e-apple-macos.swiftinterface'
+    size:            24508
+    sdk_relative:    true
+  - mtime:           1747621642000000000
+    path:            'System/Library/Frameworks/Combine.framework/Modules/Combine.swiftmodule/arm64e-apple-macos.swiftinterface'
+    size:            175563
+    sdk_relative:    true
+version:         1
+...

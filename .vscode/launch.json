@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:MirrorBot}",
+            "name": "Debug MirrorBot",
+            "program": "${workspaceFolder:MirrorBot}/.build/debug/MirrorBot",
+            "preLaunchTask": "swift: Build Debug MirrorBot"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:MirrorBot}",
+            "name": "Release MirrorBot",
+            "program": "${workspaceFolder:MirrorBot}/.build/release/MirrorBot",
+            "preLaunchTask": "swift: Build Release MirrorBot"
+        }
+    ]
+}

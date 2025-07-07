@@ -32,7 +32,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "869"
             endingLineNumber = "869"
-            landmarkName = "findAppCoordinates(image:appName:pageNumber:)"
+            landmarkName = "detectContours()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -48,7 +48,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "872"
             endingLineNumber = "872"
-            landmarkName = "findAppCoordinates(image:appName:pageNumber:)"
+            landmarkName = "detectContours()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

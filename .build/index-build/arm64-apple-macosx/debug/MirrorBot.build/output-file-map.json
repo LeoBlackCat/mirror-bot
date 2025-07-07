@@ -1,0 +1,54 @@
+{
+  "": {
+    "swift-dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/master.swiftdeps"
+  },
+  "/Users/leo/dev/MirrorBot/MirrorBot/AIResponseView.swift": {
+    "dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AIResponseView.d",
+    "object": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AIResponseView.swift.o",
+    "swiftmodule": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AIResponseView~partial.swiftmodule",
+    "swift-dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AIResponseView.swiftdeps",
+    "diagnostics": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AIResponseView.dia"
+  },
+  "/Users/leo/dev/MirrorBot/MirrorBot/AITaskView.swift": {
+    "dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AITaskView.d",
+    "object": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AITaskView.swift.o",
+    "swiftmodule": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AITaskView~partial.swiftmodule",
+    "swift-dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AITaskView.swiftdeps",
+    "diagnostics": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/AITaskView.dia"
+  },
+  "/Users/leo/dev/MirrorBot/MirrorBot/ContentView.swift": {
+    "dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ContentView.d",
+    "object": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ContentView.swift.o",
+    "swiftmodule": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ContentView~partial.swiftmodule",
+    "swift-dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ContentView.swiftdeps",
+    "diagnostics": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ContentView.dia"
+  },
+  "/Users/leo/dev/MirrorBot/MirrorBot/ControlsView.swift": {
+    "dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ControlsView.d",
+    "object": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ControlsView.swift.o",
+    "swiftmodule": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ControlsView~partial.swiftmodule",
+    "swift-dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ControlsView.swiftdeps",
+    "diagnostics": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ControlsView.dia"
+  },
+  "/Users/leo/dev/MirrorBot/MirrorBot/MirrorBotApp.swift": {
+    "dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/MirrorBotApp.d",
+    "object": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/MirrorBotApp.swift.o",
+    "swiftmodule": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/MirrorBotApp~partial.swiftmodule",
+    "swift-dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/MirrorBotApp.swiftdeps",
+    "diagnostics": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/MirrorBotApp.dia"
+  },
+  "/Users/leo/dev/MirrorBot/MirrorBot/ScreenCaptureManager.swift": {
+    "dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenCaptureManager.d",
+    "object": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenCaptureManager.swift.o",
+    "swiftmodule": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenCaptureManager~partial.swiftmodule",
+    "swift-dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenCaptureManager.swiftdeps",
+    "diagnostics": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenCaptureManager.dia"
+  },
+  "/Users/leo/dev/MirrorBot/MirrorBot/ScreenshotView.swift": {
+    "dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenshotView.d",
+    "object": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenshotView.swift.o",
+    "swiftmodule": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenshotView~partial.swiftmodule",
+    "swift-dependencies": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenshotView.swiftdeps",
+    "diagnostics": "/Users/leo/dev/MirrorBot/.build/index-build/arm64-apple-macosx/debug/MirrorBot.build/ScreenshotView.dia"
+  }
+}
