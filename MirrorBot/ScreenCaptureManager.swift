@@ -226,173 +226,6 @@ class ScreenCaptureManager: ObservableObject {
     private var isTaskCancelled = false
     private var currentSessionFilename: String = ""
     
-    private func runAppleScript(_ script: String) -> String? {
-        let appleScript = NSAppleScript(source: script)
-        var error: NSDictionary?
-        
-        if let output = appleScript?.executeAndReturnError(&error) {
-            return output.stringValue
-        } else if let error = error {
-            print("AppleScript error: \(error)")
-        }
-        
-        return nil
-    }
-        
-    private func getIPhoneWindowPosition() -> CGPoint? {
-        let script = """
-        tell application "System Events"
-            tell application process "iPhone Mirroring"
-                get position of front window
-            end tell
-        end tell
-        """
-        
-        guard let result = runAppleScript(script) else { return nil }
-        
-        // Parse result like "{0, 31}" -> CGPoint(x: 0, y: 31)
-        let cleaned = result.replacingOccurrences(of: "{", with: "")
-                           .replacingOccurrences(of: "}", with: "")
-        let components = cleaned.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-        
-        if components.count == 2,
-           let x = Double(components[0]),
-           let y = Double(components[1]) {
-            return CGPoint(x: x, y: y)
-        }
-        
-        return nil
-    }
-        
-    private func getIPhoneWindowSize() -> CGSize? {
-        let script = """
-        tell application "System Events"
-            tell application process "iPhone Mirroring"
-                get size of front window
-            end tell
-        end tell
-        """
-        
-        guard let result = runAppleScript(script) else { return nil }
-        
-        // Parse result like "{430, 942}" -> CGSize(width: 430, height: 942)
-        let cleaned = result.replacingOccurrences(of: "{", with: "")
-                           .replacingOccurrences(of: "}", with: "")
-        let components = cleaned.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-        
-        if components.count == 2,
-           let width = Double(components[0]),
-           let height = Double(components[1]) {
-            return CGSize(width: width, height: height)
-        }
-        
-        return nil
-    }
-    
-    private func requestAutomationPermissions() -> Bool {
-        // Check if we have permission to control System Events
-        let systemEventsBundle = "com.apple.systemevents"
-        
-        let script = """
-        tell application "System Events"
-            return name
-        end tell
-        """
-        
-        let appleScript = NSAppleScript(source: script)
-        var error: NSDictionary?
-        
-        if let result = appleScript?.executeAndReturnError(&error) {
-            print("✅ Automation permissions granted \(result)")
-            return true
-        } else {
-            print("❌ Automation permissions denied: \(error?["NSAppleScriptErrorMessage"] ?? "Unknown error")")
-            return false
-        }
-    }
-    
-    private func debugRunningApplications() {
-        let script = """
-        tell application "System Events"
-            get name of every application process
-        end tell
-        """
-        
-        if let result = runAppleScript(script) {
-            print("🔍 Running applications: \(result)")
-        }
-        
-        // Also check bundle identifiers
-        let bundleScript = """
-        tell application "System Events"
-            get bundle identifier of every application process
-        end tell
-        """
-        
-        if let bundleResult = runAppleScript(bundleScript) {
-            print("🔍 Bundle identifiers: \(bundleResult)")
-        }
-    }
-    
-    private func getIPhoneWindowPosition2() -> CGPoint? {
-        
-        // Try different script variations
-        let scripts = [
-            // Option 1: By process name
-            """
-            tell application "System Events"
-                tell application process "iPhone Mirroring"
-                    get position of front window
-                end tell
-            end tell
-            """,
-            
-            // Option 2: Try without "front"
-            """
-            tell application "System Events"
-                tell application process "iPhone Mirroring"
-                    get position of window 1
-                end tell
-            end tell
-            """,
-            
-            // Option 3: Get all windows first
-            """
-            tell application "System Events"
-                tell application process "iPhone Mirroring"
-                    get position of every window
-                end tell
-            end tell
-            """
-        ]
-        
-        for (index, script) in scripts.enumerated() {
-            print("🔍 Trying script approach \(index + 1)...")
-            if let result = runAppleScript(script) {
-                print("✅ Script \(index + 1) result: \(result)")
-                // Parse the result...
-                return parsePositionResult(result)
-            }
-        }
-        
-        return nil
-    }
-
-    private func parsePositionResult(_ result: String) -> CGPoint? {
-        // Handle both single position "{0, 31}" and multiple positions "{{0, 31}}"
-        let cleaned = result.replacingOccurrences(of: "{", with: "")
-                           .replacingOccurrences(of: "}", with: "")
-        let components = cleaned.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-        
-        if components.count >= 2,
-           let x = Double(components[0]),
-           let y = Double(components[1]) {
-            return CGPoint(x: x, y: y)
-        }
-        
-        return nil
-    }
-    
     func findIPhoneMirrorWindow() async -> SCWindow? {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(
@@ -408,30 +241,16 @@ class ScreenCaptureManager: ObservableObject {
             if let window = window {
                 await MainActor.run {
                     self.iPhoneWindow = window
-                    if self.requestAutomationPermissions() {
-                        getIPhoneWindowPosition2() // Try to get position with improved script
-                        // ✅ Get real coordinates using AppleScript
-                        if let realPosition = getIPhoneWindowPosition(),
-                           let realSize = getIPhoneWindowSize() {
-                            
-                            let correctedFrame = CGRect(
-                                x: realPosition.x,
-                                y: realPosition.y,
-                                width: realSize.width,
-                                height: realSize.height
-                            )
-                            
-                            print("📱 ScreenCaptureKit reports: \(window.frame)")
-                            print("🍎 AppleScript reports: \(correctedFrame)")
-                            print("✅ Using AppleScript coordinates")
-                            self.windowFrame = correctedFrame // ✅ Use AppleScript coordinates
-                            return
-                        }
+                    
+                    // ✅ Apply fallback for negative coordinates
+                    if window.frame.minX < 0 {
+                        print("🔧 Applying fallback coordinates for negative X: \(window.frame.minX)")
+                        self.windowFrame = CGRect(x: 0.0, y: 31.0, width: 430.0, height: 942.0)
+                        print("✅ Using fallback coordinates: \(self.windowFrame)")
+                    } else {
+                        self.windowFrame = window.frame
+                        print("✅ Using ScreenCaptureKit coordinates: \(window.frame)")
                     }
-                    print("⚠️ Using ScreenCaptureKit coordinates")
-                    self.iPhoneWindow = window
-                    self.windowFrame = window.frame
-                    print("📱 ScreenCaptureKit coordinates: \(window.frame)")
                 }
             }
             

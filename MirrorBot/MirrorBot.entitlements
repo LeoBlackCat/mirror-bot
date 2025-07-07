@@ -19,7 +19,6 @@
     <key>com.apple.security.temporary-exception.apple-events</key>
     <array>
         <string>com.apple.systemevents</string>
-        <string>com.apple.iPhone-Mirroring</string>
         <string>com.apple.ScreenContinuity</string>
     </array>
     
