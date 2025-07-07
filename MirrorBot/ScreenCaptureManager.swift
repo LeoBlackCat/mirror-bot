@@ -226,15 +226,180 @@ class ScreenCaptureManager: ObservableObject {
     private var isTaskCancelled = false
     private var currentSessionFilename: String = ""
     
+    private func runAppleScript(_ script: String) -> String? {
+        let appleScript = NSAppleScript(source: script)
+        var error: NSDictionary?
+        
+        if let output = appleScript?.executeAndReturnError(&error) {
+            return output.stringValue
+        } else if let error = error {
+            print("AppleScript error: \(error)")
+        }
+        
+        return nil
+    }
+        
+    private func getIPhoneWindowPosition() -> CGPoint? {
+        let script = """
+        tell application "System Events"
+            tell application process "iPhone Mirroring"
+                get position of front window
+            end tell
+        end tell
+        """
+        
+        guard let result = runAppleScript(script) else { return nil }
+        
+        // Parse result like "{0, 31}" -> CGPoint(x: 0, y: 31)
+        let cleaned = result.replacingOccurrences(of: "{", with: "")
+                           .replacingOccurrences(of: "}", with: "")
+        let components = cleaned.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        
+        if components.count == 2,
+           let x = Double(components[0]),
+           let y = Double(components[1]) {
+            return CGPoint(x: x, y: y)
+        }
+        
+        return nil
+    }
+        
+    private func getIPhoneWindowSize() -> CGSize? {
+        let script = """
+        tell application "System Events"
+            tell application process "iPhone Mirroring"
+                get size of front window
+            end tell
+        end tell
+        """
+        
+        guard let result = runAppleScript(script) else { return nil }
+        
+        // Parse result like "{430, 942}" -> CGSize(width: 430, height: 942)
+        let cleaned = result.replacingOccurrences(of: "{", with: "")
+                           .replacingOccurrences(of: "}", with: "")
+        let components = cleaned.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        
+        if components.count == 2,
+           let width = Double(components[0]),
+           let height = Double(components[1]) {
+            return CGSize(width: width, height: height)
+        }
+        
+        return nil
+    }
+    
+    private func requestAutomationPermissions() -> Bool {
+        // Check if we have permission to control System Events
+        let systemEventsBundle = "com.apple.systemevents"
+        
+        let script = """
+        tell application "System Events"
+            return name
+        end tell
+        """
+        
+        let appleScript = NSAppleScript(source: script)
+        var error: NSDictionary?
+        
+        if let result = appleScript?.executeAndReturnError(&error) {
+            print("✅ Automation permissions granted \(result)")
+            return true
+        } else {
+            print("❌ Automation permissions denied: \(error?["NSAppleScriptErrorMessage"] ?? "Unknown error")")
+            return false
+        }
+    }
+    
+    private func debugRunningApplications() {
+        let script = """
+        tell application "System Events"
+            get name of every application process
+        end tell
+        """
+        
+        if let result = runAppleScript(script) {
+            print("🔍 Running applications: \(result)")
+        }
+        
+        // Also check bundle identifiers
+        let bundleScript = """
+        tell application "System Events"
+            get bundle identifier of every application process
+        end tell
+        """
+        
+        if let bundleResult = runAppleScript(bundleScript) {
+            print("🔍 Bundle identifiers: \(bundleResult)")
+        }
+    }
+    
+    private func getIPhoneWindowPosition2() -> CGPoint? {
+        
+        // Try different script variations
+        let scripts = [
+            // Option 1: By process name
+            """
+            tell application "System Events"
+                tell application process "iPhone Mirroring"
+                    get position of front window
+                end tell
+            end tell
+            """,
+            
+            // Option 2: Try without "front"
+            """
+            tell application "System Events"
+                tell application process "iPhone Mirroring"
+                    get position of window 1
+                end tell
+            end tell
+            """,
+            
+            // Option 3: Get all windows first
+            """
+            tell application "System Events"
+                tell application process "iPhone Mirroring"
+                    get position of every window
+                end tell
+            end tell
+            """
+        ]
+        
+        for (index, script) in scripts.enumerated() {
+            print("🔍 Trying script approach \(index + 1)...")
+            if let result = runAppleScript(script) {
+                print("✅ Script \(index + 1) result: \(result)")
+                // Parse the result...
+                return parsePositionResult(result)
+            }
+        }
+        
+        return nil
+    }
+
+    private func parsePositionResult(_ result: String) -> CGPoint? {
+        // Handle both single position "{0, 31}" and multiple positions "{{0, 31}}"
+        let cleaned = result.replacingOccurrences(of: "{", with: "")
+                           .replacingOccurrences(of: "}", with: "")
+        let components = cleaned.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        
+        if components.count >= 2,
+           let x = Double(components[0]),
+           let y = Double(components[1]) {
+            return CGPoint(x: x, y: y)
+        }
+        
+        return nil
+    }
+    
     func findIPhoneMirrorWindow() async -> SCWindow? {
         do {
-            // Get available content
             let content = try await SCShareableContent.excludingDesktopWindows(
                 false,
                 onScreenWindowsOnly: true
             )
             
-            // Find iPhone Mirroring window
             let window = content.windows.first { window in
                 (window.title?.contains("iPhone Mirroring") == true) ||
                 (window.owningApplication?.bundleIdentifier.contains("MirrorDisplay") == true)
@@ -243,7 +408,30 @@ class ScreenCaptureManager: ObservableObject {
             if let window = window {
                 await MainActor.run {
                     self.iPhoneWindow = window
+                    if self.requestAutomationPermissions() {
+                        getIPhoneWindowPosition2() // Try to get position with improved script
+                        // ✅ Get real coordinates using AppleScript
+                        if let realPosition = getIPhoneWindowPosition(),
+                           let realSize = getIPhoneWindowSize() {
+                            
+                            let correctedFrame = CGRect(
+                                x: realPosition.x,
+                                y: realPosition.y,
+                                width: realSize.width,
+                                height: realSize.height
+                            )
+                            
+                            print("📱 ScreenCaptureKit reports: \(window.frame)")
+                            print("🍎 AppleScript reports: \(correctedFrame)")
+                            print("✅ Using AppleScript coordinates")
+                            self.windowFrame = correctedFrame // ✅ Use AppleScript coordinates
+                            return
+                        }
+                    }
+                    print("⚠️ Using ScreenCaptureKit coordinates")
+                    self.iPhoneWindow = window
                     self.windowFrame = window.frame
+                    print("📱 ScreenCaptureKit coordinates: \(window.frame)")
                 }
             }
             
@@ -348,6 +536,7 @@ class ScreenCaptureManager: ObservableObject {
         
         // Get current cursor position
         let cursorPosition = NSEvent.mouseLocation
+        print("Current cursor position: \(cursorPosition)")
         await MainActor.run {
             self.currentCursorPosition = cursorPosition
         }
@@ -355,8 +544,8 @@ class ScreenCaptureManager: ObservableObject {
         // Convert cursor position to image coordinates
         let imagePosition = CGPoint(
             x: cursorPosition.x - windowFrame.minX,
-            //y: cursorPosition.y - windowFrame.minY
-            y: windowFrame.maxY - cursorPosition.y      // Invert Y coordinate for image coordinates
+            y: cursorPosition.y - windowFrame.minY
+            //y: windowFrame.maxY - cursorPosition.y      // Invert Y coordinate for image coordinates
         )
         
         return drawCursorOverlay(on: capturedImage, at: imagePosition)

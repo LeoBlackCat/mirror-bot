@@ -42,6 +42,15 @@ struct ControlsView: View {
                             .frame(width: 60)
                     }
                     
+                    Button(" Activate iPhone Window") {
+                        Task {
+                            guard let iPhoneWindow = screenCaptureManager.iPhoneWindow else { return }
+                            
+                            // First, activate the iPhone Mirroring window
+                            await activateIPhoneMirrorWindow(iPhoneWindow)
+                        }
+                    }
+                    
                     HStack {
                         Button("🖱️ Simulate Click") {
                             Task {

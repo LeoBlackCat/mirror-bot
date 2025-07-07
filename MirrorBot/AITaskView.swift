@@ -156,8 +156,16 @@ struct AITaskView: View {
     }
     
     private func testCursorOverlay() async {
-        testResults = "Testing cursor overlay..."
+        testResults = "Starting in 2 seconds... Move cursor to iPhone area!"
         showingTestResults = true
+        
+        // 2-second delay for user to position cursor
+        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+        
+        // Beep to signal capture
+        NSSound.beep()
+        
+        testResults = "Capturing screenshot with cursor overlay..."
         
         guard let screenshot = await screenCaptureManager.captureWithCursorOverlay() else {
             testResults = "❌ Failed to capture screenshot with cursor overlay"

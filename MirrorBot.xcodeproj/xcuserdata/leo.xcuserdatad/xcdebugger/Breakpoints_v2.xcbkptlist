@@ -3,4 +3,52 @@
    uuid = "686AD0AB-7798-412F-9C7F-0BF1EEBD4E86"
    type = "1"
    version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "27B842A6-4B26-4A96-AAFB-B5BAAFED1FB1"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "MirrorBot/ScreenCaptureManager.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "321"
+            endingLineNumber = "321"
+            landmarkName = "debugRunningApplications()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "27B842A6-4B26-4A96-AAFB-B5BAAFED1FB1 - 9b45d3f871f8a608"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "MirrorBot.ScreenCaptureManager.debugRunningApplications() -&gt; ()"
+                  moduleName = "MirrorBot.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/leo/dev/MirrorBot/MirrorBot/ScreenCaptureManager.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "321"
+                  endingLineNumber = "321">
+               </Location>
+               <Location
+                  uuid = "27B842A6-4B26-4A96-AAFB-B5BAAFED1FB1 - 9b45d3f871f8a608"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "MirrorBot.ScreenCaptureManager.debugRunningApplications() -&gt; ()"
+                  moduleName = "MirrorBot.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/leo/dev/MirrorBot/MirrorBot/ScreenCaptureManager.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "321"
+                  endingLineNumber = "321">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
 </Bucket>
