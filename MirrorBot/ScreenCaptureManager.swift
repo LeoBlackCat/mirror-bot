@@ -11,6 +11,151 @@ import ScreenCaptureKit
 import Foundation
 import AppKit
 
+// MARK: - AI Logger
+class AILogger {
+    static let shared = AILogger()
+    private let downloadsURL: URL
+    
+    private init() {
+        let fileManager = FileManager.default
+        downloadsURL = fileManager.urls(for: .downloadsDirectory, in: .userDomainMask).first!
+    }
+    
+    func logAIRequest(screenshot: NSImage, task: String, apiKey: String) -> String {
+        let timestamp = DateFormatter.aiLogFormatter.string(from: Date())
+        let filename = "MirrorBot_AI_\(timestamp)"
+        
+        // Save screenshot
+        saveScreenshot(screenshot, filename: "\(filename)_screenshot.png")
+        
+        // Create log entry
+        let logEntry = """
+        ═══════════════════════════════════════════════════════════════
+        🚀 AI REQUEST - \(DateFormatter.aiTimestampFormatter.string(from: Date()))
+        ═══════════════════════════════════════════════════════════════
+        Task: \(task)
+        API Key: \(String(apiKey.prefix(8)))...***
+        Screenshot saved: \(filename)_screenshot.png
+        
+        """
+        
+        // Append to log file
+        appendToLogFile(logEntry, filename: "\(filename)_log.txt")
+        
+        return filename
+    }
+    
+    func logAIResponse(_ response: AIResponse?, filename: String, error: String? = nil) {
+        let logEntry: String
+        
+        if let error = error {
+            logEntry = """
+            ❌ AI RESPONSE ERROR - \(DateFormatter.aiTimestampFormatter.string(from: Date()))
+            Error: \(error)
+            
+            
+            """
+        } else if let response = response {
+            logEntry = """
+            ✅ AI RESPONSE - \(DateFormatter.aiTimestampFormatter.string(from: Date()))
+            Message: \(response.message)
+            Commands: \(response.commands.map { $0.type.rawValue }.joined(separator: ", "))
+            Stop Reason: \(response.stopReason ?? "none")
+            
+            
+            """
+        } else {
+            logEntry = """
+            ⚠️ AI RESPONSE - \(DateFormatter.aiTimestampFormatter.string(from: Date()))
+            No response received
+            
+            
+            """
+        }
+        
+        appendToLogFile(logEntry, filename: "\(filename)_log.txt")
+    }
+    
+    func logCommandExecution(_ command: AICommand, result: String, filename: String) {
+        let logEntry = """
+        🎯 COMMAND EXECUTED - \(DateFormatter.aiTimestampFormatter.string(from: Date()))
+        Command: \(command.type.rawValue)
+        Parameters: \(command.parameters)
+        Result: \(result)
+        
+        """
+        
+        appendToLogFile(logEntry, filename: "\(filename)_log.txt")
+    }
+    
+    private func saveScreenshot(_ image: NSImage, filename: String) {
+        let imageURL = downloadsURL.appendingPathComponent(filename)
+        
+        guard let imageData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: imageData) else {
+            print("❌ Failed to get image data for screenshot")
+            return
+        }
+        
+        guard let pngData = bitmap.representation(using: .png, properties: [:]) else {
+            print("❌ Failed to convert image to PNG")
+            return
+        }
+        
+        do {
+            try pngData.write(to: imageURL)
+            print("📸 Screenshot saved: \(filename)")
+        } catch {
+            print("❌ Failed to save screenshot: \(error)")
+        }
+    }
+    
+    private func appendToLogFile(_ content: String, filename: String) {
+        let logURL = downloadsURL.appendingPathComponent(filename)
+        
+        if !FileManager.default.fileExists(atPath: logURL.path) {
+            // Create new log file with header
+            let header = """
+            MirrorBot AI Task Log
+            Generated: \(DateFormatter.aiTimestampFormatter.string(from: Date()))
+            
+            
+            """
+            try? header.write(to: logURL, atomically: true, encoding: .utf8)
+        }
+        
+        // Append content
+        if let fileHandle = try? FileHandle(forWritingTo: logURL) {
+            fileHandle.seekToEndOfFile()
+            if let data = content.data(using: .utf8) {
+                fileHandle.write(data)
+            }
+            fileHandle.closeFile()
+        } else {
+            // Fallback: read existing content and write all together
+            let existingContent = (try? String(contentsOf: logURL)) ?? ""
+            let newContent = existingContent + content
+            try? newContent.write(to: logURL, atomically: true, encoding: .utf8)
+        }
+        
+        print("📝 Log updated: \(filename)")
+    }
+}
+
+extension DateFormatter {
+    static let aiLogFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        return formatter
+    }()
+    
+    static let aiTimestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return formatter
+    }()
+}
+
 // MARK: - AI Command Protocol
 protocol AICommand {
     var type: AICommandType { get }
@@ -74,6 +219,7 @@ class ScreenCaptureManager: ObservableObject {
     private var conversation: [[String: Any]] = []
     private var taskDescription: String = ""
     private var isTaskCancelled = false
+    private var currentSessionFilename: String = ""
     
     func findIPhoneMirrorWindow() async -> SCWindow? {
         do {
@@ -254,6 +400,11 @@ class ScreenCaptureManager: ObservableObject {
             return nil
         }
         
+        // Log the request (only for the first request in the session)
+        if currentSessionFilename.isEmpty {
+            currentSessionFilename = AILogger.shared.logAIRequest(screenshot: image, task: task, apiKey: claudeAPIKey)
+        }
+        
         let systemPrompt = """
         You are an AI assistant specialized in guiding users through simulated touch operations on an iPhone screen. Your task is to interpret screen images and then provide precise movement and click instructions to complete specific tasks.
 
@@ -389,7 +540,10 @@ class ScreenCaptureManager: ObservableObject {
     }
     
     private func performClaudeAPIRequest(requestBody: [String: Any]) async -> AIResponse? {
-        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else { return nil }
+        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else { 
+            AILogger.shared.logAIResponse(nil, filename: currentSessionFilename, error: "Invalid API URL")
+            return nil
+        }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -403,10 +557,18 @@ class ScreenCaptureManager: ObservableObject {
             let (data, _) = try await URLSession.shared.data(for: request)
             
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                return parseClaudeResponse(json)
+                let response = parseClaudeResponse(json)
+                
+                // Log the response
+                AILogger.shared.logAIResponse(response, filename: currentSessionFilename)
+                
+                return response
+            } else {
+                AILogger.shared.logAIResponse(nil, filename: currentSessionFilename, error: "Failed to parse JSON response")
             }
         } catch {
             print("Claude API request failed: \(error)")
+            AILogger.shared.logAIResponse(nil, filename: currentSessionFilename, error: "API request failed: \(error.localizedDescription)")
         }
         
         return nil
@@ -460,8 +622,19 @@ class ScreenCaptureManager: ObservableObject {
             self.isTaskRunning = true
             self.isTaskCancelled = false
             self.isTaskPaused = false
-            self.taskStatus = "Starting task..."
+            self.taskStatus = "Starting in 2 seconds... Move cursor to iPhone area!"
             self.conversation = []
+            self.currentSessionFilename = "" // Reset for new session
+        }
+        
+        // 2-second delay for user to position cursor
+        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+        
+        // Beep to signal start
+        NSSound.beep()
+        
+        await MainActor.run {
+            self.taskStatus = "Starting task now..."
         }
         
         await runTaskLoop()
@@ -577,17 +750,25 @@ class ScreenCaptureManager: ObservableObject {
     }
     
     private func executeCommand(_ command: AICommand) async -> String {
+        let result: String
+        
         switch command.type {
         case .moveCursor:
             if let moveCmd = command as? MoveCursorCommand {
-                return await moveCursor(direction: moveCmd.direction, distance: moveCmd.distance)
+                result = await moveCursor(direction: moveCmd.direction, distance: moveCmd.distance)
+            } else {
+                result = "Invalid move cursor command"
             }
         case .clickCursor:
-            return await clickCursor()
+            result = await clickCursor()
         case .done:
-            return "Task completed"
+            result = "Task completed"
         }
-        return "Unknown command"
+        
+        // Log command execution
+        AILogger.shared.logCommandExecution(command, result: result, filename: currentSessionFilename)
+        
+        return result
     }
     
     private func moveCursor(direction: String, distance: Int) async -> String {
