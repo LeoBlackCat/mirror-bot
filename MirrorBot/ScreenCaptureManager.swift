@@ -160,6 +160,7 @@ extension DateFormatter {
 protocol AICommand {
     var type: AICommandType { get }
     var parameters: [String: Any] { get }
+    var toolUseId: String { get }
 }
 
 enum AICommandType: String, CaseIterable {
@@ -172,6 +173,7 @@ struct MoveCursorCommand: AICommand {
     let type: AICommandType = .moveCursor
     let direction: String
     let distance: Int
+    let toolUseId: String
     
     var parameters: [String: Any] {
         return ["direction": direction, "distance": distance]
@@ -180,6 +182,7 @@ struct MoveCursorCommand: AICommand {
 
 struct ClickCursorCommand: AICommand {
     let type: AICommandType = .clickCursor
+    let toolUseId: String
     var parameters: [String: Any] { return [:] }
 }
 
@@ -187,6 +190,7 @@ struct DoneCommand: AICommand {
     let type: AICommandType = .done
     let status: String
     let reason: String
+    let toolUseId: String
     
     var parameters: [String: Any] {
         return ["status": status, "reason": reason]
@@ -198,6 +202,7 @@ struct AIResponse {
     let message: String
     let commands: [AICommand]
     let stopReason: String?
+    let rawContent: [[String: Any]]
 }
 
 class ScreenCaptureManager: ObservableObject {
@@ -348,8 +353,11 @@ class ScreenCaptureManager: ObservableObject {
         }
         
         // Convert cursor position to image coordinates
-        let imagePosition = CGPoint(x: cursorPosition.x - windowFrame.minX,
-                                   y: cursorPosition.y - windowFrame.minY)
+        let imagePosition = CGPoint(
+            x: cursorPosition.x - windowFrame.minX,
+            //y: cursorPosition.y - windowFrame.minY
+            y: windowFrame.maxY - cursorPosition.y      // Invert Y coordinate for image coordinates
+        )
         
         return drawCursorOverlay(on: capturedImage, at: imagePosition)
     }
@@ -539,8 +547,10 @@ class ScreenCaptureManager: ObservableObject {
         return await performClaudeAPIRequest(requestBody: requestBody)
     }
     
-    private func performClaudeAPIRequest(requestBody: [String: Any]) async -> AIResponse? {
-        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else { 
+    private func performClaudeAPIRequest(requestBody: [String: Any], retryCount: Int = 0) async -> AIResponse? {
+        let maxRetries = 3
+        let baseDelay: Double = 1.0 // seconds
+        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
             AILogger.shared.logAIResponse(nil, filename: currentSessionFilename, error: "Invalid API URL")
             return nil
         }
@@ -557,6 +567,27 @@ class ScreenCaptureManager: ObservableObject {
             let (data, _) = try await URLSession.shared.data(for: request)
             
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                // ✅ Check for overloaded error
+                if let error = json["error"] as? [String: Any],
+                   let errorType = error["type"] as? String,
+                   errorType == "overloaded_error" {
+                    
+                    if retryCount < maxRetries {
+                        let delay = baseDelay * pow(2.0, Double(retryCount)) // Exponential backoff
+                        print("⏳ Claude API overloaded, retrying in \(delay) seconds... (attempt \(retryCount + 1)/\(maxRetries + 1))")
+                        
+                        await MainActor.run {
+                            self.taskStatus = "API overloaded, retrying in \(Int(delay))s..."
+                        }
+                        
+                        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                        return await performClaudeAPIRequest(requestBody: requestBody, retryCount: retryCount + 1)
+                    } else {
+                        AILogger.shared.logAIResponse(nil, filename: currentSessionFilename, error: "API overloaded after \(maxRetries) retries")
+                        return nil
+                    }
+                }
+                
                 let response = parseClaudeResponse(json)
                 
                 // Log the response
@@ -585,6 +616,7 @@ class ScreenCaptureManager: ObservableObject {
                 if type == "text", let text = item["text"] as? String {
                     message += text
                 } else if type == "tool_use",
+                          let toolUseId = item["id"] as? String,
                           let name = item["name"] as? String,
                           let input = item["input"] as? [String: Any] {
                     
@@ -592,14 +624,14 @@ class ScreenCaptureManager: ObservableObject {
                     case "move_cursor":
                         if let direction = input["direction"] as? String,
                            let distance = input["distance"] as? Int {
-                            commands.append(MoveCursorCommand(direction: direction, distance: distance))
+                            commands.append(MoveCursorCommand(direction: direction, distance: distance, toolUseId: toolUseId))
                         }
                     case "click_cursor":
-                        commands.append(ClickCursorCommand())
+                        commands.append(ClickCursorCommand(toolUseId: toolUseId))
                     case "done":
                         if let status = input["status"] as? String,
                            let reason = input["reason"] as? String {
-                            commands.append(DoneCommand(status: status, reason: reason))
+                            commands.append(DoneCommand(status: status, reason: reason, toolUseId: toolUseId))
                         }
                     default:
                         break
@@ -609,7 +641,7 @@ class ScreenCaptureManager: ObservableObject {
         }
         
         let stopReason = json["stop_reason"] as? String
-        return AIResponse(message: message, commands: commands, stopReason: stopReason)
+        return AIResponse(message: message, commands: commands, stopReason: stopReason, rawContent: content)
     }
     
     // MARK: - Task Management Functions
@@ -691,9 +723,17 @@ class ScreenCaptureManager: ObservableObject {
                 return
             }
             
+            
+            
             await MainActor.run {
                 self.taskStatus = "Processing AI response..."
             }
+            
+            let assistantMessage: [String: Any] = [
+                "role": "assistant",
+                "content": aiResponse.rawContent
+            ]
+            conversation.append(assistantMessage)
             
             // Execute commands
             var toolResults: [[String: Any]] = []
@@ -712,7 +752,7 @@ class ScreenCaptureManager: ObservableObject {
                 let result = await executeCommand(command)
                 toolResults.append([
                     "type": "tool_result",
-                    "tool_use_id": UUID().uuidString,
+                    "tool_use_id": command.toolUseId,
                     "content": [["type": "text", "text": result]]
                 ])
             }
